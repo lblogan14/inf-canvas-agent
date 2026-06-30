@@ -9,14 +9,14 @@ import math
 import uuid
 from dataclasses import dataclass
 
-from ...schema.canvas import CanvasState, LineType, PipeData, Position
-from ...schema.commands import (
+from inf_canvas.schema.canvas import CanvasState, LineType, PipeData, Position
+from inf_canvas.schema.commands import (
     AddNodeCommand,
     CanvasCommand,
     ConnectCommand,
     RemoveNodeCommand,
 )
-from ...schema.equipment import EQUIPMENT_METADATA, EquipmentType, PortDef, PortSide
+from inf_canvas.schema.equipment import EQUIPMENT_METADATA, EquipmentType, PortDef, PortSide
 
 
 @dataclass

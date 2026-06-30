@@ -1,34 +1,27 @@
-"""P&ID Extractor agent (LangGraph).
+"""P&ID Extractor graph (LangGraph).
 
-detect (Gemini vision) -> place (normalize boxes to canvas coords, build
-commands) -> summarize. Relative positions from the source image are preserved
-because every detection's normalized center is scaled into the working area.
+detect (Gemini vision) -> place (normalize boxes to canvas coords, de-overlap,
+build commands) -> summarize. Relative positions from the source image are
+preserved because every detection's normalized center is scaled into the
+working area.
 """
 
-from typing import Any, TypedDict
+from typing import Any
 
-from langgraph.graph import END, StateGraph
+from langgraph.graph import END, START, StateGraph
 
-from ...schema.canvas import CanvasState
-from ...schema.commands import CanvasCommand
-from ..models import prompts
-from ..models.gemini import GeminiClient
-from ..models.schemas import PIDExtraction
-from . import layout, tools
+from inf_canvas.ai.agents.shared import layout, tools
+from inf_canvas.ai.models.gemini import GeminiClient
+from inf_canvas.schema.canvas import CanvasState
+from inf_canvas.schema.commands import CanvasCommand
 
-# Working area the normalized (0..1) detections are scaled into. Generous so
-# closely-spaced symbols have room before overlap resolution kicks in.
+from . import prompts
+from .schemas import PIDExtraction
+from .states import ExtractorState
+
+# Working area the normalized (0..1) detections are scaled into.
 WORK_W = 2400.0
 WORK_H = 1500.0
-
-
-class ExtractorState(TypedDict, total=False):
-    image: bytes
-    mime_type: str
-    canvas: CanvasState
-    extraction: PIDExtraction
-    commands: list[CanvasCommand]
-    summary: str
 
 
 def build_extractor_graph(gemini: GeminiClient) -> Any:
@@ -49,7 +42,6 @@ def build_extractor_graph(gemini: GeminiClient) -> Any:
             tools.PlacedNode(ref=e.ref, type=e.type, label=e.label, x=e.x * WORK_W, y=e.y * WORK_H)
             for e in extraction.equipment
         ]
-        # Separate overlapping symbols while keeping their relative layout.
         layout.resolve_overlaps(placed)
         links = [
             tools.Link(from_ref=c.from_ref, to_ref=c.to_ref, line_type=c.line_type, label=c.label)
@@ -67,15 +59,17 @@ def build_extractor_graph(gemini: GeminiClient) -> Any:
             "preserving their relative layout."
         }
 
-    graph = StateGraph(ExtractorState)
-    graph.add_node("detect", detect)
-    graph.add_node("place", place)
-    graph.add_node("summarize", summarize)
-    graph.set_entry_point("detect")
-    graph.add_edge("detect", "place")
-    graph.add_edge("place", "summarize")
-    graph.add_edge("summarize", END)
-    return graph.compile()
+    return (
+        StateGraph(ExtractorState)
+        .add_node("detect", detect)
+        .add_node("place", place)
+        .add_node("summarize", summarize)
+        .add_edge(START, "detect")
+        .add_edge("detect", "place")
+        .add_edge("place", "summarize")
+        .add_edge("summarize", END)
+        .compile()
+    )
 
 
 def run_extractor(

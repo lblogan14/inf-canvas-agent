@@ -6,7 +6,8 @@ needs (it must preserve the source diagram's layout, so a full graph re-layout
 would be wrong here).
 """
 
-from ...schema.equipment import EQUIPMENT_METADATA
+from inf_canvas.schema.equipment import EQUIPMENT_METADATA
+
 from .tools import PlacedNode
 
 
@@ -32,10 +33,9 @@ def resolve_overlaps(
                 dx = b.x - a.x
                 dy = b.y - a.y
                 if abs(dx) >= min_dx or abs(dy) >= min_dy:
-                    continue  # not overlapping
+                    continue
                 overlap_x = min_dx - abs(dx)
                 overlap_y = min_dy - abs(dy)
-                # Push apart along the axis of least penetration.
                 if overlap_x < overlap_y:
                     shift = overlap_x / 2 + 0.5
                     sign = 1.0 if dx >= 0 else -1.0

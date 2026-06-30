@@ -1,26 +1,20 @@
-"""Canvas Commander agent (LangGraph).
+"""Canvas Commander graph (LangGraph).
 
 plan (Gemini Flash, given the current canvas) -> compile (plan -> commands).
 """
 
-from typing import Any, TypedDict
+from typing import Any
 
-from langgraph.graph import END, StateGraph
+from langgraph.graph import END, START, StateGraph
 
-from ...schema.canvas import CanvasState
-from ...schema.commands import CanvasCommand
-from ..models import prompts
-from ..models.gemini import GeminiClient
-from ..models.schemas import CommanderPlan
-from . import tools
+from inf_canvas.ai.agents.shared import tools
+from inf_canvas.ai.models.gemini import GeminiClient
+from inf_canvas.schema.canvas import CanvasState
+from inf_canvas.schema.commands import CanvasCommand
 
-
-class CommanderState(TypedDict, total=False):
-    instruction: str
-    canvas: CanvasState
-    plan: CommanderPlan
-    commands: list[CanvasCommand]
-    reply: str
+from . import prompts
+from .schemas import CommanderPlan
+from .states import CommanderState
 
 
 def _canvas_summary(canvas: CanvasState) -> str:
@@ -61,13 +55,15 @@ def build_commander_graph(gemini: GeminiClient) -> Any:
         commands.extend(tools.removals(plan_obj.remove_node_ids, state["canvas"]))
         return {"commands": commands, "reply": plan_obj.reply}
 
-    graph = StateGraph(CommanderState)
-    graph.add_node("plan", plan)
-    graph.add_node("compile", compile_plan)
-    graph.set_entry_point("plan")
-    graph.add_edge("plan", "compile")
-    graph.add_edge("compile", END)
-    return graph.compile()
+    return (
+        StateGraph(CommanderState)
+        .add_node("plan", plan)
+        .add_node("compile", compile_plan)
+        .add_edge(START, "plan")
+        .add_edge("plan", "compile")
+        .add_edge("compile", END)
+        .compile()
+    )
 
 
 def run_commander(

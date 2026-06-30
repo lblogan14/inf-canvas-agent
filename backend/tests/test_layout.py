@@ -1,4 +1,4 @@
-from inf_canvas.ai.agents import layout, tools
+from inf_canvas.ai.agents.shared import layout, tools
 from inf_canvas.schema.equipment import EQUIPMENT_METADATA
 
 

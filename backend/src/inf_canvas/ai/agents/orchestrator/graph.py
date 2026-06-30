@@ -1,28 +1,22 @@
-"""Optimus orchestrator (LangGraph).
+"""Optimus orchestrator graph (LangGraph).
 
 route (classify intent) -> delegate to the Canvas Commander sub-graph, or answer
 directly. The 'commander' node invokes the Commander graph, so this is a graph
 delegating to another graph.
 """
 
-from typing import Any, TypedDict
+from typing import Any
 
-from langgraph.graph import END, StateGraph
+from langgraph.graph import END, START, StateGraph
 
-from ...schema.canvas import CanvasState
-from ...schema.commands import CanvasCommand
-from ..models import prompts
-from ..models.gemini import GeminiClient
-from ..models.schemas import RouteDecision
-from .canvas_commander import run_commander
+from inf_canvas.ai.agents.canvas_commander.graph import run_commander
+from inf_canvas.ai.models.gemini import GeminiClient
+from inf_canvas.schema.canvas import CanvasState
+from inf_canvas.schema.commands import CanvasCommand
 
-
-class OptimusState(TypedDict, total=False):
-    message: str
-    canvas: CanvasState
-    route: str
-    reply: str
-    commands: list[CanvasCommand]
+from . import prompts
+from .schemas import RouteDecision
+from .states import OptimusState
 
 
 def build_optimus_graph(gemini: GeminiClient) -> Any:
@@ -48,19 +42,21 @@ def build_optimus_graph(gemini: GeminiClient) -> Any:
         )
         return {"reply": text, "commands": []}
 
-    graph = StateGraph(OptimusState)
-    graph.add_node("route", route)
-    graph.add_node("commander", commander)
-    graph.add_node("answer", answer)
-    graph.set_entry_point("route")
-    graph.add_conditional_edges(
-        "route",
-        lambda s: s["route"],
-        {"commander": "commander", "answer": "answer"},
+    return (
+        StateGraph(OptimusState)
+        .add_node("route", route)
+        .add_node("commander", commander)
+        .add_node("answer", answer)
+        .add_edge(START, "route")
+        .add_conditional_edges(
+            "route",
+            lambda s: s["route"],
+            {"commander": "commander", "answer": "answer"},
+        )
+        .add_edge("commander", END)
+        .add_edge("answer", END)
+        .compile()
     )
-    graph.add_edge("commander", END)
-    graph.add_edge("answer", END)
-    return graph.compile()
 
 
 def run_optimus(
