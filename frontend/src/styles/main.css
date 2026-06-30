@@ -1,0 +1,23 @@
+@import 'tailwindcss';
+
+/* Vue Flow core + add-on styles */
+@import '@vue-flow/core/dist/style.css';
+@import '@vue-flow/core/dist/theme-default.css';
+@import '@vue-flow/controls/dist/style.css';
+@import '@vue-flow/minimap/dist/style.css';
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+#app {
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}

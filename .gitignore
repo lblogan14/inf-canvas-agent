@@ -1,0 +1,44 @@
+# --- Node / frontend ---
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+coverage/
+*.tsbuildinfo
+
+# --- Python / backend ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+.python-version.local
+
+# --- Env / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Runtime storage (generated projects / uploads) ---
+backend/storage/projects/*
+backend/storage/uploads/*
+!backend/storage/projects/.gitkeep
+!backend/storage/uploads/.gitkeep
+
+# --- Editor / OS ---
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+
+# --- Agents ---
+.playwright/
+CLAUDE.md
+AGENTS.md
+.claude/
