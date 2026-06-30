@@ -51,6 +51,48 @@ describe('applyCommand', () => {
     expect(after.edges).toHaveLength(0);
   });
 
+  it('manages groups and prunes members when a node is removed', () => {
+    let state = applyCommand(base, {
+      op: 'batch',
+      commands: [
+        { op: 'add_node', id: 'a', equipment: 'vessel', position: { x: 0, y: 0 } },
+        { op: 'add_node', id: 'b', equipment: 'storage_tank', position: { x: 200, y: 0 } },
+        {
+          op: 'add_group',
+          id: 'g1',
+          label: 'Unit 100',
+          position: { x: -10, y: -10 },
+          width: 300,
+          height: 200,
+          memberIds: ['a', 'b'],
+        },
+      ],
+    });
+    expect(state.groups).toHaveLength(1);
+    state = applyCommand(state, { op: 'remove_node', id: 'a' });
+    expect(state.groups[0]?.memberIds).toEqual(['b']);
+    state = applyCommand(state, { op: 'remove_group', id: 'g1' });
+    expect(state.groups).toHaveLength(0);
+    expect(state.nodes.map((n) => n.id)).toEqual(['b']);
+  });
+
+  it('sets edge waypoints via update_edge', () => {
+    let state = applyCommand(base, {
+      op: 'batch',
+      commands: [
+        { op: 'add_node', id: 'a', equipment: 'vessel', position: { x: 0, y: 0 } },
+        { op: 'add_node', id: 'b', equipment: 'storage_tank', position: { x: 200, y: 0 } },
+        { op: 'connect', id: 'e1', source: 'a', sourcePort: 'bottom', target: 'b', targetPort: 'fill' },
+      ],
+    });
+    state = applyCommand(state, {
+      op: 'update_edge',
+      id: 'e1',
+      patch: { waypoints: [{ x: 50, y: 50 }] },
+    });
+    expect(state.edges[0]?.data?.waypoints).toEqual([{ x: 50, y: 50 }]);
+  });
+
   it('applies a batch atomically in order', () => {
     const state = applyCommand(base, {
       op: 'batch',

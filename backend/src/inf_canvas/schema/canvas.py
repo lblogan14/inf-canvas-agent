@@ -28,6 +28,7 @@ class PipeData(BaseModel):
     lineType: LineType | None = None
     label: str | None = None
     animated: bool | None = None
+    waypoints: list[Position] | None = None
 
 
 class CanvasEdge(BaseModel):
@@ -37,6 +38,16 @@ class CanvasEdge(BaseModel):
     target: str
     targetPort: str
     data: PipeData | None = None
+
+
+class CanvasGroup(BaseModel):
+    id: str
+    label: str
+    position: Position
+    width: float
+    height: float
+    color: str | None = None
+    memberIds: list[str] = []
 
 
 class CanvasMeta(BaseModel):
@@ -50,6 +61,7 @@ class CanvasState(BaseModel):
     meta: CanvasMeta
     nodes: list[CanvasNode] = []
     edges: list[CanvasEdge] = []
+    groups: list[CanvasGroup] = []
 
 
 def empty_canvas(canvas_id: str, name: str) -> CanvasState:

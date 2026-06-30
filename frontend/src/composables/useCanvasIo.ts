@@ -41,6 +41,7 @@ export function useCanvasIo() {
       },
       nodes: data.nodes,
       edges: data.edges,
+      groups: data.groups ?? [],
     };
     await api.saveProject(fresh);
     store.loadState(fresh);
