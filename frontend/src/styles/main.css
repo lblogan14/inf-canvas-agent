@@ -6,8 +6,52 @@
 @import '@vue-flow/controls/dist/style.css';
 @import '@vue-flow/minimap/dist/style.css';
 
-:root {
+/* --- Theme tokens ------------------------------------------------------- */
+:root,
+:root[data-theme='dark'] {
   color-scheme: dark;
+  --bg: #0f172a;
+  --surface: #111827;
+  --surface-2: #0b1220;
+  --surface-3: #1e293b;
+  --border: #1f2937;
+  --text: #e5e7eb;
+  --text-muted: #94a3b8;
+  --text-faint: #64748b;
+  --accent: #38bdf8;
+  --accent-contrast: #04243a;
+  --danger: #ef4444;
+  --node-stroke: #cbd5e1;
+  --node-label: #94a3b8;
+  --edge: #94a3b8;
+  --grid: #334155;
+  --handle: #475569;
+  --handle-border: #94a3b8;
+  --user-bubble: #1d4ed8;
+  --user-bubble-text: #ffffff;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f1f5f9;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #e2e8f0;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-muted: #475569;
+  --text-faint: #94a3b8;
+  --accent: #0284c7;
+  --accent-contrast: #ffffff;
+  --danger: #dc2626;
+  --node-stroke: #334155;
+  --node-label: #475569;
+  --edge: #64748b;
+  --grid: #cbd5e1;
+  --handle: #cbd5e1;
+  --handle-border: #64748b;
+  --user-bubble: #2563eb;
+  --user-bubble-text: #ffffff;
 }
 
 html,
@@ -15,6 +59,11 @@ body,
 #app {
   height: 100%;
   margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
 }
 
 #app {

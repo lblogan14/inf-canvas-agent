@@ -14,11 +14,12 @@ from ...schema.commands import CanvasCommand
 from ..models import prompts
 from ..models.gemini import GeminiClient
 from ..models.schemas import PIDExtraction
-from . import tools
+from . import layout, tools
 
-# Working area the normalized (0..1) detections are scaled into.
-WORK_W = 1600.0
-WORK_H = 1000.0
+# Working area the normalized (0..1) detections are scaled into. Generous so
+# closely-spaced symbols have room before overlap resolution kicks in.
+WORK_W = 2400.0
+WORK_H = 1500.0
 
 
 class ExtractorState(TypedDict, total=False):
@@ -48,6 +49,8 @@ def build_extractor_graph(gemini: GeminiClient) -> Any:
             tools.PlacedNode(ref=e.ref, type=e.type, label=e.label, x=e.x * WORK_W, y=e.y * WORK_H)
             for e in extraction.equipment
         ]
+        # Separate overlapping symbols while keeping their relative layout.
+        layout.resolve_overlaps(placed)
         links = [
             tools.Link(from_ref=c.from_ref, to_ref=c.to_ref, line_type=c.line_type, label=c.label)
             for c in extraction.connections

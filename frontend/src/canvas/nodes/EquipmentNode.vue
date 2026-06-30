@@ -68,34 +68,34 @@ const sizeStyle = computed(() => ({
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: #e5e7eb;
+  color: var(--text);
 }
 .symbol-wrap {
   display: grid;
   place-items: center;
-  color: #cbd5e1;
+  color: var(--node-stroke);
   transition: color 0.12s ease;
 }
 .equipment-node.selected .symbol-wrap {
-  color: #38bdf8;
+  color: var(--accent);
 }
 .node-label {
   margin-top: 4px;
   font-size: 11px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--node-label);
   white-space: nowrap;
 }
 .equipment-node.selected .node-label {
-  color: #38bdf8;
+  color: var(--accent);
 }
 :deep(.vue-flow__handle) {
   width: 8px;
   height: 8px;
-  background: #475569;
-  border: 1px solid #94a3b8;
+  background: var(--handle);
+  border: 1px solid var(--handle-border);
 }
 :deep(.vue-flow__handle:hover) {
-  background: #38bdf8;
+  background: var(--accent);
 }
 </style>

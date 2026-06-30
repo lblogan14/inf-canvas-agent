@@ -2,8 +2,10 @@
 import { computed } from 'vue';
 import { getEquipmentMeta } from '@/schema';
 import { useCanvasStore } from '@/stores/canvasStore';
+import { useUiStore } from '@/stores/uiStore';
 
 const store = useCanvasStore();
+const ui = useUiStore();
 const node = computed(() => store.selectedNode);
 const meta = computed(() => (node.value ? getEquipmentMeta(node.value.type) : null));
 
@@ -15,7 +17,10 @@ function rotate(): void {
 
 <template>
   <aside class="inspector">
-    <div class="section-title">Inspector</div>
+    <div class="section-head">
+      <span class="section-title">Inspector</span>
+      <button class="collapse" title="Hide inspector" @click="ui.rightOpen = false">›</button>
+    </div>
     <template v-if="node && meta">
       <div class="field">
         <label>Type</label>
@@ -50,17 +55,34 @@ function rotate(): void {
 .inspector {
   width: 240px;
   padding: 12px;
-  background: #111827;
-  border-left: 1px solid #1f2937;
-  color: #e5e7eb;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  color: var(--text);
   overflow-y: auto;
+}
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
 }
 .section-title {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #64748b;
-  margin-bottom: 10px;
+  color: var(--text-faint);
+}
+.collapse {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 2px 8px;
+}
+.collapse:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 .field {
   margin-bottom: 10px;
@@ -68,12 +90,12 @@ function rotate(): void {
 .field label {
   display: block;
   font-size: 10px;
-  color: #64748b;
+  color: var(--text-faint);
   margin-bottom: 3px;
 }
 .value {
   font-size: 13px;
-  color: #cbd5e1;
+  color: var(--text-muted);
 }
 .mono {
   font-family: ui-monospace, monospace;
@@ -84,25 +106,25 @@ function rotate(): void {
   font-size: 13px;
   padding: 5px 8px;
   border-radius: 6px;
-  border: 1px solid #1f2937;
-  background: #0b1220;
-  color: #cbd5e1;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
 }
 .action {
   width: 100%;
   font-size: 12px;
   padding: 6px;
   border-radius: 6px;
-  border: 1px solid #1f2937;
-  background: #1e293b;
-  color: #e5e7eb;
+  border: 1px solid var(--border);
+  background: var(--surface-3);
+  color: var(--text);
   cursor: pointer;
 }
 .action:hover {
-  border-color: #38bdf8;
+  border-color: var(--accent);
 }
 .empty {
   font-size: 12px;
-  color: #475569;
+  color: var(--text-faint);
 }
 </style>

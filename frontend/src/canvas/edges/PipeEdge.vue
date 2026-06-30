@@ -1,21 +1,30 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath, type EdgeProps } from '@vue-flow/core';
+import {
+  BaseEdge,
+  EdgeLabelRenderer,
+  getSmoothStepPath,
+  getStraightPath,
+  type EdgeProps,
+} from '@vue-flow/core';
 import type { PipeData } from '@/schema';
+import { useUiStore } from '@/stores/uiStore';
 
 const props = defineProps<EdgeProps<PipeData>>();
+const ui = useUiStore();
 
-const path = computed(() =>
-  getSmoothStepPath({
+const path = computed(() => {
+  const common = {
     sourceX: props.sourceX,
     sourceY: props.sourceY,
     sourcePosition: props.sourcePosition,
     targetX: props.targetX,
     targetY: props.targetY,
     targetPosition: props.targetPosition,
-    borderRadius: 4,
-  }),
-);
+  };
+  if (ui.linkStyle === 'straight') return getStraightPath(common);
+  return getSmoothStepPath({ ...common, borderRadius: ui.linkStyle === 'step' ? 0 : 6 });
+});
 
 const lineType = computed(() => props.data?.lineType ?? 'process');
 const dash = computed(() =>
@@ -28,7 +37,7 @@ const dash = computed(() =>
     :id="id"
     :path="path[0]"
     :style="{
-      stroke: '#94a3b8',
+      stroke: 'var(--edge)',
       strokeWidth: lineType === 'process' ? 2.5 : 1.5,
       strokeDasharray: dash,
     }"
@@ -50,8 +59,8 @@ const dash = computed(() =>
   font-size: 10px;
   padding: 1px 4px;
   border-radius: 4px;
-  background: #1e293b;
-  color: #cbd5e1;
+  background: var(--surface-3);
+  color: var(--text);
   pointer-events: all;
 }
 </style>

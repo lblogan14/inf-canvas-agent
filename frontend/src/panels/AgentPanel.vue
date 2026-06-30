@@ -62,14 +62,12 @@ async function onUpload(event: Event): Promise<void> {
 
 <template>
   <section class="agent-panel">
-    <div class="header">
-      <span class="title">🤖 Optimus</span>
-      <span v-if="busy" class="busy">working…</span>
-    </div>
-
     <div ref="logEl" class="log">
       <div v-for="(e, i) in log" :key="i" class="entry" :class="e.role">
         <div class="bubble">{{ e.text }}</div>
+      </div>
+      <div v-if="busy" class="entry system">
+        <div class="bubble">Optimus is working…</div>
       </div>
     </div>
 
@@ -94,17 +92,17 @@ async function onUpload(event: Event): Promise<void> {
 .agent-panel {
   display: flex;
   flex-direction: column;
-  height: 280px;
-  background: #0b1220;
-  border-top: 1px solid #1f2937;
-  color: #e5e7eb;
+  height: 100%;
+  width: 100%;
+  background: var(--surface-2);
+  color: var(--text);
 }
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  border-bottom: 1px solid #1f2937;
+  border-bottom: 1px solid var(--border);
 }
 .title {
   font-weight: 600;
@@ -112,7 +110,7 @@ async function onUpload(event: Event): Promise<void> {
 }
 .busy {
   font-size: 11px;
-  color: #38bdf8;
+  color: var(--accent);
 }
 .log {
   flex: 1;
@@ -137,29 +135,29 @@ async function onUpload(event: Event): Promise<void> {
   white-space: pre-wrap;
 }
 .entry.user .bubble {
-  background: #1d4ed8;
-  color: #fff;
+  background: var(--user-bubble);
+  color: var(--user-bubble-text);
 }
 .entry.agent .bubble {
-  background: #1e293b;
-  color: #e5e7eb;
+  background: var(--surface-3);
+  color: var(--text);
 }
 .entry.system .bubble {
   background: transparent;
-  color: #64748b;
+  color: var(--text-faint);
   font-style: italic;
 }
 .composer {
   display: flex;
   gap: 6px;
   padding: 8px;
-  border-top: 1px solid #1f2937;
+  border-top: 1px solid var(--border);
 }
 .icon {
   padding: 6px 10px;
   border-radius: 6px;
-  border: 1px solid #1f2937;
-  background: #1e293b;
+  border: 1px solid var(--border);
+  background: var(--surface-3);
   cursor: pointer;
 }
 .text {
@@ -167,16 +165,16 @@ async function onUpload(event: Event): Promise<void> {
   font-size: 13px;
   padding: 6px 10px;
   border-radius: 6px;
-  border: 1px solid #1f2937;
-  background: #0f172a;
-  color: #e5e7eb;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
 }
 .send {
   padding: 6px 14px;
   border-radius: 6px;
   border: none;
-  background: #38bdf8;
-  color: #04243a;
+  background: var(--accent);
+  color: var(--accent-contrast);
   font-weight: 600;
   cursor: pointer;
 }

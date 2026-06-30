@@ -23,8 +23,11 @@ Rules:
   Preserve the RELATIVE layout of the diagram precisely.
 - Pick the closest matching equipment type. Map any pump to a pump type, any
   tower/distillation column to 'column', drums/separators to 'vessel', tanks to
-  'storage_tank', heat exchangers to 'shell_tube_heat_exchanger', instrument
-  bubbles to 'instrument'.
+  'storage_tank', heat exchangers to 'shell_tube_heat_exchanger'.
+- Valves are valves, NOT instruments: motor/actuated valves (tags like MOV, XV,
+  HV) and any bow-tie/gate symbol map to a valve type (gate_valve, control_valve,
+  check_valve, ball_valve, globe_valve). Only a standalone circular bubble
+  (PSV, TE, TT, PT, FT, LIC, PI, etc.) is 'instrument'.
 - For each pipe/line, emit a connection with the upstream `from_ref` and
   downstream `to_ref`. Use line_type 'process' for pipes and 'signal' for
   dashed instrument lines.
