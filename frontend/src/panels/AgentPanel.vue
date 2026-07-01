@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useSpeech } from '@/composables/useSpeech';
 import { api } from '@/api/client';
@@ -20,11 +20,19 @@ const busy = ref(false);
 const logEl = ref<HTMLElement | null>(null);
 const fileEl = ref<HTMLInputElement | null>(null);
 
+async function scrollToBottom(): Promise<void> {
+  await nextTick();
+  const el = logEl.value;
+  if (el) el.scrollTop = el.scrollHeight;
+}
+
 async function push(entry: ChatEntry): Promise<void> {
   log.value.push(entry);
-  await nextTick();
-  logEl.value?.scrollTo({ top: logEl.value.scrollHeight });
+  await scrollToBottom();
 }
+
+// The "working…" indicator changes height too — keep pinned to the bottom.
+watch(busy, scrollToBottom);
 
 async function send(): Promise<void> {
   const message = input.value.trim();
@@ -138,6 +146,7 @@ async function onUpload(event: Event): Promise<void> {
 }
 .log {
   flex: 1;
+  min-height: 0; /* allow the flex child to scroll instead of growing */
   overflow-y: auto;
   padding: 10px 12px;
   display: flex;
