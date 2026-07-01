@@ -26,3 +26,17 @@ class CommanderPlan(BaseModel):
     add_nodes: list[PlannedNode] = []
     connect: list[PlannedConnection] = []
     remove_node_ids: list[str] = []
+
+
+class RetagFix(BaseModel):
+    node_id: str = Field(description="Existing node id to retag.")
+    label: str = Field(description="New tag, e.g. 'P-101'.")
+
+
+class RepairPlan(BaseModel):
+    """Fixes proposed by the self-check pass to resolve validation issues."""
+
+    connect: list[PlannedConnection] = Field(
+        default_factory=list, description="Connections to add (reference existing node ids)."
+    )
+    retag: list[RetagFix] = Field(default_factory=list, description="Tag fixes for untagged nodes.")

@@ -20,3 +20,15 @@ with their ids, types, labels and positions). Produce a plan:
 
 Only do what the user asked. If nothing on the canvas needs to change, return
 empty lists and explain in `reply`."""
+
+REPAIR_SYSTEM = """You are reviewing a P&ID you just built. An automatic checker
+found issues (e.g. a pump with no suction/discharge, isolated equipment, an
+instrument with no signal line). You are given the current nodes (with ids) and
+the list of issues. Propose the minimal set of fixes:
+- `connect`: connections to ADD, referencing the existing node ids shown. Route
+  process flow sensibly (source upstream, target downstream). Use line_type
+  'signal' for connections to/from instruments, otherwise 'process'.
+- `retag`: tags to assign to untagged nodes (use conventional tags like P-101,
+  V-101, E-101, TI-101).
+Only propose fixes that resolve the listed issues. Never invent node ids that are
+not in the list. If an issue cannot be fixed by a connection or tag, skip it."""
