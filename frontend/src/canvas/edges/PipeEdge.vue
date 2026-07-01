@@ -104,16 +104,18 @@ const dash = computed(() =>
     >
       {{ data.label }}
     </div>
-    <!-- Reroute waypoint handles (drag to move, double-click to remove) -->
-    <div
-      v-for="(wp, i) in waypoints"
-      :key="i"
-      class="waypoint"
-      :class="{ selected: selected }"
-      :style="{ transform: `translate(-50%, -50%) translate(${wp.x}px, ${wp.y}px)` }"
-      @pointerdown="startDrag(i, $event)"
-      @dblclick.stop="store.removeWaypoint(id, i)"
-    />
+    <!-- Reroute waypoint handles (only when selected; drag to move,
+         double-click to remove) -->
+    <template v-if="selected">
+      <div
+        v-for="(wp, i) in waypoints"
+        :key="i"
+        class="waypoint selected"
+        :style="{ transform: `translate(-50%, -50%) translate(${wp.x}px, ${wp.y}px)` }"
+        @pointerdown="startDrag(i, $event)"
+        @dblclick.stop="store.removeWaypoint(id, i)"
+      />
+    </template>
   </EdgeLabelRenderer>
 </template>
 

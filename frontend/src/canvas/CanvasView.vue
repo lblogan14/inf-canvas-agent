@@ -29,10 +29,12 @@ const nodeTypes = { equipment: markRaw(EquipmentNode), group: markRaw(GroupNode)
 const edgeTypes = { pipe: markRaw(PipeEdge) };
 
 const gridColor = computed(() => (theme.value === 'dark' ? '#334155' : '#cbd5e1'));
+// Mask dims the area OUTSIDE the viewport, so it must contrast with the minimap
+// background for the viewport rectangle to read.
 const miniMask = computed(() =>
-  theme.value === 'dark' ? 'rgba(15, 23, 42, 0.6)' : 'rgba(226, 232, 240, 0.6)',
+  theme.value === 'dark' ? 'rgba(2, 6, 23, 0.55)' : 'rgba(30, 41, 59, 0.22)',
 );
-const miniNodeColor = computed(() => (theme.value === 'dark' ? '#475569' : '#94a3b8'));
+const miniNodeColor = computed(() => (theme.value === 'dark' ? '#64748b' : '#94a3b8'));
 
 const {
   onConnect,

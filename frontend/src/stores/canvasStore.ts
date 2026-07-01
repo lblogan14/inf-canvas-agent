@@ -306,14 +306,27 @@ export const useCanvasStore = defineStore('canvas', () => {
     fitSignal.value += 1;
   }
 
-  /** Re-arrange the whole graph with a left-to-right dagre layout. */
-  function autoLayout(): void {
-    const moves = computeAutoLayout(state.value.nodes, state.value.edges);
+  /**
+   * Re-arrange the whole graph with ELK: non-overlapping nodes + orthogonal
+   * edge routing (applied as pipe waypoints so pipes avoid crossing equipment).
+   */
+  async function autoLayout(): Promise<void> {
+    const { moves, edges } = await computeAutoLayout(state.value.nodes, state.value.edges);
     if (!moves.length) return;
-    dispatch({
-      op: 'batch',
-      commands: moves.map((m) => ({ op: 'move_node', id: m.id, position: { x: m.x, y: m.y } })),
-    });
+    const commands: CanvasCommand[] = moves.map((m) => ({
+      op: 'move_node',
+      id: m.id,
+      position: { x: m.x, y: m.y },
+    }));
+    for (const route of edges) {
+      const current = state.value.edges.find((e) => e.id === route.id);
+      commands.push({
+        op: 'update_edge',
+        id: route.id,
+        patch: { ...(current?.data ?? {}), waypoints: route.waypoints },
+      });
+    }
+    dispatch({ op: 'batch', commands });
     requestFit();
   }
 
