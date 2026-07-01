@@ -7,7 +7,7 @@ import type { EquipmentNodeData } from '@/stores/canvasStore';
 
 const props = defineProps<NodeProps<EquipmentNodeData>>();
 
-const SymbolComponent = computed(() => symbolRegistry[props.data.meta.symbol]);
+const symbolSvg = computed(() => symbolRegistry[props.data.meta.symbol]);
 
 const sideToPosition: Record<PortSide, FlowPosition> = {
   top: FlowPosition.Top,
@@ -33,13 +33,8 @@ const sizeStyle = computed(() => ({
 
 <template>
   <div class="equipment-node" :class="{ selected: props.selected }">
-    <div class="symbol-wrap" :style="sizeStyle" :title="data.meta.label">
-      <component
-        :is="SymbolComponent"
-        :width="data.meta.size.width"
-        :height="data.meta.size.height"
-      />
-    </div>
+    <!-- eslint-disable-next-line vue/no-v-html -- trusted first-party SVG assets -->
+    <div class="symbol-wrap" :style="sizeStyle" :title="data.meta.label" v-html="symbolSvg" />
 
     <div v-if="data.label" class="node-label">{{ data.label }}</div>
 
@@ -75,6 +70,11 @@ const sizeStyle = computed(() => ({
   place-items: center;
   color: var(--node-stroke);
   transition: color 0.12s ease;
+}
+.symbol-wrap :deep(svg) {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 .equipment-node.selected .symbol-wrap {
   color: var(--accent);

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 70" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round">
+  <circle cx="35" cy="35" r="30" fill="currentColor" fill-opacity="0.06" />
+  <text x="35" y="46" font-size="30" font-family="sans-serif" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">M</text>
+  <line x1="65" y1="35" x2="70" y2="35" />
+</svg>

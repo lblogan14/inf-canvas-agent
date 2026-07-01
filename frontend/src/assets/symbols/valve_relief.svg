@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 54 66" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+  <line x1="27" y1="64" x2="27" y2="46" />
+  <line x1="2" y1="30" x2="14" y2="30" />
+  <path d="M27 46 L14 30 L40 30 Z" fill="currentColor" fill-opacity="0.08" />
+  <path d="M14 30 L27 46 L27 20 Z" fill="currentColor" fill-opacity="0.08" />
+  <polyline points="27,20 20,16 34,11 20,6 30,2" />
+</svg>
