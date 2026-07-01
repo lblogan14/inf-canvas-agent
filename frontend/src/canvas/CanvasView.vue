@@ -103,6 +103,13 @@ function onEdgeClick(e: EdgeMouseEvent) {
   store.setSelection([e.edge.id]);
 }
 
+// Double-clicking a symbol selects it and reveals the Inspector (hidden by default).
+function onNodeDoubleClick(e: NodeMouseEvent) {
+  if (store.isGroup(e.node.id)) return;
+  store.setSelection([e.node.id]);
+  ui.rightOpen = true;
+}
+
 function onDrop(event: DragEvent) {
   const type = event.dataTransfer?.getData('application/inf-equipment');
   if (!type || !isEquipmentType(type)) return;
@@ -237,6 +244,7 @@ function onEdgeDoubleClick(payload: EdgeMouseEvent) {
       :zoom-on-double-click="false"
       class="canvas"
       @node-click="onNodeClick"
+      @node-double-click="onNodeDoubleClick"
       @edge-click="onEdgeClick"
       @drop="onDrop"
       @dragover.prevent

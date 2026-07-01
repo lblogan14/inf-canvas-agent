@@ -3,13 +3,21 @@ import { defineStore } from 'pinia';
 import type { EquipmentType } from '@/schema';
 
 export type LinkStyle = 'smoothstep' | 'straight' | 'step';
-export type LeftTab = 'project' | 'equipment' | 'legend';
+export type LeftTab = 'project' | 'equipment' | 'legend' | 'issues';
 
 const STORAGE_KEY = 'inf-canvas-ui';
+
+export const LEFT_MIN_WIDTH = 200;
+export const LEFT_MAX_WIDTH = 560;
+
+function clampWidth(w: number): number {
+  return Math.min(LEFT_MAX_WIDTH, Math.max(LEFT_MIN_WIDTH, Math.round(w)));
+}
 
 interface PersistedUi {
   leftOpen: boolean;
   leftTab: LeftTab;
+  leftWidth: number;
   rightOpen: boolean;
   optimusOpen: boolean;
   optimusMinimized: boolean;
@@ -33,7 +41,9 @@ export const useUiStore = defineStore('ui', () => {
 
   const leftOpen = ref(saved.leftOpen ?? true);
   const leftTab = ref<LeftTab>(saved.leftTab ?? 'equipment');
-  const rightOpen = ref(saved.rightOpen ?? true);
+  const leftWidth = ref(clampWidth(saved.leftWidth ?? 240));
+  // Inspector is hidden by default; double-clicking a symbol opens it.
+  const rightOpen = ref(saved.rightOpen ?? false);
   const optimusOpen = ref(saved.optimusOpen ?? true);
   const optimusMinimized = ref(saved.optimusMinimized ?? false);
   const snapToGrid = ref(saved.snapToGrid ?? false);
@@ -45,6 +55,7 @@ export const useUiStore = defineStore('ui', () => {
     [
       leftOpen,
       leftTab,
+      leftWidth,
       rightOpen,
       optimusOpen,
       optimusMinimized,
@@ -57,6 +68,7 @@ export const useUiStore = defineStore('ui', () => {
       const data: PersistedUi = {
         leftOpen: leftOpen.value,
         leftTab: leftTab.value,
+        leftWidth: leftWidth.value,
         rightOpen: rightOpen.value,
         optimusOpen: optimusOpen.value,
         optimusMinimized: optimusMinimized.value,
@@ -69,6 +81,10 @@ export const useUiStore = defineStore('ui', () => {
     },
     { deep: true },
   );
+
+  function setLeftWidth(w: number): void {
+    leftWidth.value = clampWidth(w);
+  }
 
   function toggleFavorite(type: EquipmentType): void {
     const i = favorites.value.indexOf(type);
@@ -83,6 +99,8 @@ export const useUiStore = defineStore('ui', () => {
   return {
     leftOpen,
     leftTab,
+    leftWidth,
+    setLeftWidth,
     rightOpen,
     optimusOpen,
     optimusMinimized,

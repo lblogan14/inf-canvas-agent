@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onBeforeUnmount } from 'vue';
 import { useUiStore, type LeftTab } from '@/stores/uiStore';
 import ProjectPanel from './ProjectPanel.vue';
 import NodeLibrary from './NodeLibrary.vue';
@@ -6,92 +7,157 @@ import LegendPanel from './LegendPanel.vue';
 
 const ui = useUiStore();
 
-const tabs: { key: LeftTab; label: string; icon: string; title: string }[] = [
-  { key: 'project', label: 'Project', icon: '📁', title: 'Project' },
-  { key: 'equipment', label: 'Equipment', icon: '⚙️', title: 'Equipment templates' },
-  { key: 'legend', label: 'Legend', icon: '〰️', title: 'Connection legend' },
+const tabs: { key: LeftTab; label: string; icon: string }[] = [
+  { key: 'project', label: 'Project', icon: '📁' },
+  { key: 'equipment', label: 'Equipment', icon: '⚙️' },
+  { key: 'legend', label: 'Legend', icon: '〰️' },
 ];
+
+// --- draggable width ----------------------------------------------------
+let startX = 0;
+let startW = 0;
+
+function onMove(e: PointerEvent): void {
+  ui.setLeftWidth(startW + (e.clientX - startX));
+}
+function endResize(): void {
+  window.removeEventListener('pointermove', onMove);
+  window.removeEventListener('pointerup', endResize);
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+}
+function startResize(e: PointerEvent): void {
+  e.preventDefault();
+  startX = e.clientX;
+  startW = ui.leftWidth;
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', endResize);
+}
+onBeforeUnmount(endResize);
 </script>
 
 <template>
-  <aside class="left-panel">
-    <div class="tab-bar">
+  <aside class="left-panel" :style="{ width: ui.leftWidth + 'px' }">
+    <!-- Icon rail: collapsed to icons; expands to show labels on hover -->
+    <nav class="rail">
       <button
         v-for="t in tabs"
         :key="t.key"
-        class="tab"
+        class="rail-tab"
         :class="{ active: ui.leftTab === t.key }"
-        :title="t.title"
+        :title="t.label"
         @click="ui.leftTab = t.key"
       >
-        <span class="ti">{{ t.icon }}</span
-        ><span class="tl">{{ t.label }}</span>
+        <span class="ri">{{ t.icon }}</span>
+        <span class="rl">{{ t.label }}</span>
       </button>
-      <button class="collapse" title="Hide panel" @click="ui.leftOpen = false">‹</button>
+      <div class="rail-spacer" />
+      <button class="rail-tab" title="Hide panel" @click="ui.leftOpen = false">
+        <span class="ri">‹</span>
+        <span class="rl">Hide</span>
+      </button>
+    </nav>
+
+    <div class="body">
+      <ProjectPanel v-show="ui.leftTab === 'project'" />
+      <NodeLibrary v-show="ui.leftTab === 'equipment'" />
+      <LegendPanel v-show="ui.leftTab === 'legend'" />
     </div>
 
-    <ProjectPanel v-show="ui.leftTab === 'project'" />
-    <NodeLibrary v-show="ui.leftTab === 'equipment'" />
-    <LegendPanel v-show="ui.leftTab === 'legend'" />
+    <div class="resizer" title="Drag to resize" @pointerdown="startResize" />
   </aside>
 </template>
 
 <style scoped>
 .left-panel {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  width: 240px;
+  height: 100%;
   background: var(--surface);
   border-right: 1px solid var(--border);
-  height: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
-.tab-bar {
+.rail {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 46px;
   display: flex;
-  align-items: stretch;
-  border-bottom: 1px solid var(--border);
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 4px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  z-index: 6;
+  overflow: hidden;
+  transition: width 0.14s ease;
 }
-.tab {
-  flex: 1;
+.rail:hover {
+  width: 168px;
+  box-shadow: 6px 0 18px rgba(0, 0, 0, 0.18);
+}
+.rail-tab {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 8px 4px;
-  font-size: 11px;
-  background: none;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  border-radius: 7px;
   border: none;
-  border-bottom: 2px solid transparent;
+  background: none;
   color: var(--text-muted);
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
 }
-.tab:hover {
-  color: var(--text);
+.rail-tab:hover {
   background: var(--surface-3);
+  color: var(--text);
 }
-.tab.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-.ti {
-  font-size: 13px;
-}
-.collapse {
-  flex: 0 0 auto;
-  padding: 0 8px;
-  background: none;
-  border: none;
-  border-left: 1px solid var(--border);
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 14px;
-}
-.collapse:hover {
+.rail-tab.active {
+  background: var(--surface-3);
   color: var(--accent);
 }
-@media (max-width: 1100px) {
-  .tl {
-    display: none;
-  }
+.ri {
+  flex: 0 0 22px;
+  text-align: center;
+  font-size: 16px;
+}
+.rl {
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.14s ease;
+}
+.rail:hover .rl {
+  opacity: 1;
+}
+.rail-spacer {
+  flex: 1;
+}
+.body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  margin-left: 46px;
+  overflow: hidden;
+}
+.body > * {
+  flex: 1;
+  min-width: 0;
+}
+.resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 7;
+}
+.resizer:hover {
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 </style>
