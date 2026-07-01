@@ -309,16 +309,17 @@ export const useCanvasStore = defineStore('canvas', () => {
     fitSignal.value += 1;
   }
 
-  // Rename is metadata (not a canvas command), so persist it directly, debounced
-  // so it survives reloads instead of being reverted by the backend snapshot.
-  let renameTimer: ReturnType<typeof setTimeout> | null = null;
-  function renameCanvas(name: string): void {
-    state.value.meta.name = name;
+  // Rename is metadata (not a canvas command). Persist it immediately (capturing
+  // THIS project's state) so it survives a project switch + reload instead of
+  // being reverted by the backend snapshot. Returns the save promise so callers
+  // can await it before switching projects.
+  function renameCanvas(name: string): Promise<unknown> {
+    const trimmed = name;
+    if (state.value.meta.name === trimmed) return Promise.resolve();
+    state.value.meta.name = trimmed;
     state.value.meta.updatedAt = new Date().toISOString();
-    if (renameTimer) clearTimeout(renameTimer);
-    renameTimer = setTimeout(() => {
-      void api.saveProject(state.value);
-    }, 500);
+    const target = state.value; // capture: save the right project even if we switch
+    return api.saveProject(target).catch(() => undefined);
   }
 
   /** Select the given ids and zoom the canvas to frame them (used by Issues). */

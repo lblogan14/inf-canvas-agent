@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useCanvasIo } from '@/composables/useCanvasIo';
 import { REPORT_BUILDERS, toCsv } from '@/canvas/reports';
@@ -12,6 +12,14 @@ const projects = ref<ProjectSummary[]>([]);
 const fileInput = ref<HTMLInputElement | null>(null);
 const saving = ref(false);
 const savedAt = ref<string | null>(null);
+
+// Local mirror so typing is never clobbered by an unrelated re-render; resync
+// whenever the project (or its name) changes underneath us.
+const nameField = ref(store.state.meta.name);
+watch(
+  () => [store.state.meta.id, store.state.meta.name],
+  () => (nameField.value = store.state.meta.name),
+);
 
 const stats = computed(() => ({
   nodes: store.state.nodes.length,
@@ -45,6 +53,11 @@ async function open(id: string): Promise<void> {
   if (id === store.state.meta.id) return;
   store.loadState(await api.getProject(id));
   store.requestFit();
+}
+
+async function onRename(): Promise<void> {
+  await store.renameCanvas(nameField.value.trim() || 'Untitled');
+  await refresh();
 }
 
 async function remove(p: ProjectSummary): Promise<void> {
@@ -87,10 +100,11 @@ onMounted(refresh);
       <section class="block">
         <div class="block-head">Current project</div>
         <input
-          :value="store.state.meta.name"
+          v-model="nameField"
           class="name"
           placeholder="Untitled"
-          @input="store.renameCanvas(($event.target as HTMLInputElement).value)"
+          @change="onRename"
+          @keydown.enter="($event.target as HTMLInputElement).blur()"
         />
         <div class="meta-row">
           <span class="dim mono">{{ store.state.meta.id }}</span>

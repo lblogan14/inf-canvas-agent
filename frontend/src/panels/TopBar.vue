@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useVueFlow } from '@vue-flow/core';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useUiStore, type LinkStyle } from '@/stores/uiStore';
@@ -16,6 +16,15 @@ const { exportJson, exportPng, importJsonFile } = useCanvasIo();
 const openMenu = ref<'project' | 'edit' | 'view' | null>(null);
 const projects = ref<ProjectSummary[]>([]);
 const fileInput = ref<HTMLInputElement | null>(null);
+
+const nameField = ref(store.state.meta.name);
+watch(
+  () => [store.state.meta.id, store.state.meta.name],
+  () => (nameField.value = store.state.meta.name),
+);
+function onRename(): void {
+  void store.renameCanvas(nameField.value.trim() || 'Untitled');
+}
 
 function toggle(menu: 'project' | 'edit' | 'view'): void {
   openMenu.value = openMenu.value === menu ? null : menu;
@@ -147,10 +156,11 @@ const linkStyles: LinkStyle[] = ['smoothstep', 'straight', 'step'];
     </nav>
 
     <input
-      :value="store.state.meta.name"
+      v-model="nameField"
       class="name"
       placeholder="Canvas name"
-      @input="store.renameCanvas(($event.target as HTMLInputElement).value)"
+      @change="onRename"
+      @keydown.enter="($event.target as HTMLInputElement).blur()"
     />
 
     <div class="spacer" />
