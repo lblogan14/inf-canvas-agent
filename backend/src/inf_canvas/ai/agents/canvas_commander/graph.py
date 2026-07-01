@@ -1,20 +1,22 @@
-"""Canvas Commander graph (LangGraph).
-
-plan (Gemini Flash, given the current canvas) -> compile (plan -> commands).
-"""
+"""Canvas Commander graph (LangGraph). plan -> compile."""
 
 from typing import Any
 
 from langgraph.graph import END, START, StateGraph
 
 from inf_canvas.ai.agents.shared import tools
-from inf_canvas.ai.models.gemini import GeminiClient
+from inf_canvas.ai.models.base import ModelClient
 from inf_canvas.schema.canvas import CanvasState
 from inf_canvas.schema.commands import CanvasCommand
 
 from . import prompts
 from .schemas import CommanderPlan
 from .states import CommanderState
+
+NODE_LABELS = {
+    "plan": "Planning the changes",
+    "compile": "Compiling canvas actions",
+}
 
 
 def _canvas_summary(canvas: CanvasState) -> str:
@@ -29,14 +31,14 @@ def _canvas_summary(canvas: CanvasState) -> str:
     return "Current canvas nodes:\n" + "\n".join(lines)
 
 
-def build_commander_graph(gemini: GeminiClient) -> Any:
+def build_commander_graph(model: ModelClient) -> Any:
     def plan(state: CommanderState) -> CommanderState:
         prompt = f"{_canvas_summary(state['canvas'])}\n\nUser instruction: {state['instruction']}"
-        result = gemini.generate_structured(
-            model=gemini.settings.gemini_model_flash,
-            contents=[prompt],
+        result = model.generate_structured(
+            role="flash",
+            prompt=prompt,
             schema=CommanderPlan,
-            system_instruction=prompts.COMMANDER_SYSTEM,
+            system=prompts.COMMANDER_SYSTEM,
             temperature=0.3,
         )
         return {"plan": result}
@@ -67,10 +69,10 @@ def build_commander_graph(gemini: GeminiClient) -> Any:
 
 
 def run_commander(
-    gemini: GeminiClient,
+    model: ModelClient,
     instruction: str,
     canvas: CanvasState,
 ) -> tuple[list[CanvasCommand], str]:
-    graph = build_commander_graph(gemini)
+    graph = build_commander_graph(model)
     result = graph.invoke({"instruction": instruction, "canvas": canvas})
     return result.get("commands", []), result.get("reply", "Done.")

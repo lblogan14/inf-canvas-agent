@@ -18,6 +18,16 @@ dependencies = [
     "numpy>=2.1",
 ]
 
+[project.optional-dependencies]
+# Non-Gemini providers, served through LangChain's init_chat_model.
+# Install with: uv sync --extra providers
+providers = [
+    "langchain>=0.3",
+    "langchain-openai>=0.2",
+    "langchain-anthropic>=0.3",
+    "langchain-google-genai>=2.0",
+]
+
 [dependency-groups]
 dev = [
     "ruff>=0.8",
@@ -51,7 +61,7 @@ files = ["src"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["google.*", "langgraph.*", "langchain_core.*", "cv2.*"]
+module = ["google.*", "langgraph.*", "langchain.*", "langchain_core.*", "cv2.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

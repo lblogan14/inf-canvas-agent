@@ -43,6 +43,7 @@ data/
 
 # --- Agents ---
 .playwright/
+.playwright-mcp/
 CLAUDE.md
 AGENTS.md
 .claude/

@@ -4,9 +4,6 @@ Set-of-Mark verifier pass, and an OpenCV line-detection hybrid.
 describe -> detect_equipment (boxes) -> connect (constrained to refs)
         -> verify (Set-of-Mark critic, optional) -> line_augment (OpenCV, optional)
         -> normalize (dedupe/filter) -> place (boxes -> canvas) -> summarize
-
-Relative positions from the source image are preserved because each detection's
-normalized box center is scaled into the working area.
 """
 
 from typing import Any
@@ -14,7 +11,8 @@ from typing import Any
 from langgraph.graph import END, START, StateGraph
 
 from inf_canvas.ai.agents.shared import annotate, layout, lines, tools
-from inf_canvas.ai.models.gemini import GeminiClient
+from inf_canvas.ai.models.base import ModelClient
+from inf_canvas.config import get_settings
 from inf_canvas.schema.canvas import CanvasState
 from inf_canvas.schema.commands import CanvasCommand
 
@@ -28,12 +26,20 @@ from .schemas import (
 )
 from .states import ExtractorState
 
-# Working area the normalized (0..1) detections are scaled into.
 WORK_W = 2400.0
 WORK_H = 1500.0
-
-# Two boxes above this intersection-over-union are treated as the same item.
 DEDUPE_IOU = 0.6
+
+NODE_LABELS = {
+    "describe": "Reading the diagram",
+    "detect_equipment": "Detecting equipment",
+    "connect": "Tracing connections",
+    "verify": "Verifying (Set-of-Mark)",
+    "line_augment": "Checking pipe lines",
+    "normalize": "Cleaning up",
+    "place": "Placing on canvas",
+    "summarize": "Finishing up",
+}
 
 
 def _iou(a: DetectedEquipment, b: DetectedEquipment) -> float:
@@ -112,27 +118,27 @@ def _boxes(equipment: list[DetectedEquipment]) -> list[tuple[str, float, float, 
     return [(e.ref, e.box.x0, e.box.y0, e.box.x1, e.box.y1) for e in equipment]
 
 
-def build_extractor_graph(gemini: GeminiClient) -> Any:
-    vision = gemini.settings.gemini_model_vision
+def build_extractor_graph(model: ModelClient) -> Any:
+    settings = get_settings()
 
     def describe(state: ExtractorState) -> ExtractorState:
-        part = gemini.image_part(state["image"], state["mime_type"])
-        text = gemini.generate_text(
-            model=vision,
-            contents=[part, prompts.DESCRIBER_USER],
-            system_instruction=prompts.DESCRIBER_SYSTEM,
+        text = model.generate_text(
+            role="vision",
+            prompt=prompts.DESCRIBER_USER,
+            system=prompts.DESCRIBER_SYSTEM,
+            image=(state["image"], state["mime_type"]),
             temperature=0.2,
         )
         return {"description": text}
 
     def detect_equipment(state: ExtractorState) -> ExtractorState:
-        part = gemini.image_part(state["image"], state["mime_type"])
         prompt = f"Diagram notes:\n{state.get('description', '')}\n\n{prompts.EQUIPMENT_USER}"
-        result = gemini.generate_structured(
-            model=vision,
-            contents=[part, prompt],
+        result = model.generate_structured(
+            role="vision",
+            prompt=prompt,
             schema=EquipmentList,
-            system_instruction=prompts.EQUIPMENT_SYSTEM,
+            system=prompts.EQUIPMENT_SYSTEM,
+            image=(state["image"], state["mime_type"]),
             temperature=0.1,
         )
         return {"equipment": result.equipment}
@@ -147,24 +153,24 @@ def build_extractor_graph(gemini: GeminiClient) -> Any:
             + f" at ({e.box.cx:.2f}, {e.box.cy:.2f})"
             for e in equipment
         )
-        part = gemini.image_part(state["image"], state["mime_type"])
         prompt = (
             f"Diagram notes:\n{state.get('description', '')}\n\n"
             f"Detected equipment (use ONLY these refs):\n{listing}\n\n"
             "Trace every pipe and signal line and list the connections."
         )
-        result = gemini.generate_structured(
-            model=vision,
-            contents=[part, prompt],
+        result = model.generate_structured(
+            role="vision",
+            prompt=prompt,
             schema=ConnectionList,
-            system_instruction=prompts.CONNECTION_SYSTEM,
+            system=prompts.CONNECTION_SYSTEM,
+            image=(state["image"], state["mime_type"]),
             temperature=0.1,
         )
         return {"connections": result.connections}
 
     def verify(state: ExtractorState) -> ExtractorState:
         equipment = state.get("equipment", [])
-        if not gemini.settings.extractor_verify or not equipment:
+        if not settings.extractor_verify or not equipment:
             return {}
         connections = state.get("connections", [])
         try:
@@ -181,11 +187,12 @@ def build_extractor_graph(gemini: GeminiClient) -> Any:
             "Review the red boxes against the drawing and return only corrections."
         )
         try:
-            result = gemini.generate_structured(
-                model=vision,
-                contents=[gemini.image_part(marked, "image/png"), prompt],
+            result = model.generate_structured(
+                role="vision",
+                prompt=prompt,
                 schema=VerificationResult,
-                system_instruction=prompts.VERIFIER_SYSTEM,
+                system=prompts.VERIFIER_SYSTEM,
+                image=(marked, "image/png"),
                 temperature=0.1,
             )
         except Exception:
@@ -195,7 +202,7 @@ def build_extractor_graph(gemini: GeminiClient) -> Any:
 
     def line_augment(state: ExtractorState) -> ExtractorState:
         equipment = state.get("equipment", [])
-        if not gemini.settings.extractor_line_hybrid or len(equipment) < 2:
+        if not settings.extractor_line_hybrid or len(equipment) < 2:
             return {}
         try:
             proposed = lines.propose_connections(state["image"], _boxes(equipment))
@@ -267,11 +274,11 @@ def build_extractor_graph(gemini: GeminiClient) -> Any:
 
 
 def run_extractor(
-    gemini: GeminiClient,
+    model: ModelClient,
     image: bytes,
     mime_type: str,
     canvas: CanvasState,
 ) -> tuple[list[CanvasCommand], str]:
-    graph = build_extractor_graph(gemini)
+    graph = build_extractor_graph(model)
     result = graph.invoke({"image": image, "mime_type": mime_type, "canvas": canvas})
     return result.get("commands", []), result.get("summary", "")

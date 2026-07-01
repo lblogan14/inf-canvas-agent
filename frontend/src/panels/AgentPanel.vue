@@ -17,8 +17,14 @@ const log = ref<ChatEntry[]>([
 ]);
 const input = ref('');
 const busy = ref(false);
+const steps = ref<string[]>([]);
 const logEl = ref<HTMLElement | null>(null);
 const fileEl = ref<HTMLInputElement | null>(null);
+
+function onStep(label: string): void {
+  steps.value = [...steps.value, label];
+  void scrollToBottom();
+}
 
 async function scrollToBottom(): Promise<void> {
   await nextTick();
@@ -39,9 +45,10 @@ async function send(): Promise<void> {
   if (!message || busy.value) return;
   input.value = '';
   await push({ role: 'user', text: message });
+  steps.value = [];
   busy.value = true;
   try {
-    const res = await api.runOptimus(store.state.meta.id, message);
+    const res = await api.runOptimus(store.state.meta.id, message, (s) => onStep(s.label));
     await push({
       role: 'agent',
       text: `${res.message}${res.commandsApplied ? `\n(${res.commandsApplied} canvas actions)` : ''}`,
@@ -69,9 +76,10 @@ async function onUpload(event: Event): Promise<void> {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (!file) return;
   await push({ role: 'user', text: `📷 Uploaded P&ID: ${file.name}` });
+  steps.value = [];
   busy.value = true;
   try {
-    const res = await api.extractPID(store.state.meta.id, file);
+    const res = await api.extractPID(store.state.meta.id, file, (s) => onStep(s.label));
     await push({ role: 'agent', text: `${res.message}\n(${res.commandsApplied} canvas actions)` });
   } catch (err) {
     await push({ role: 'system', text: `Error: ${(err as Error).message}` });
@@ -89,7 +97,10 @@ async function onUpload(event: Event): Promise<void> {
         <div class="bubble">{{ e.text }}</div>
       </div>
       <div v-if="busy" class="entry system">
-        <div class="bubble">Optimus is working…</div>
+        <div class="bubble steps">
+          <div v-for="(s, i) in steps" :key="i" class="step done">✓ {{ s }}</div>
+          <div class="step active"><span class="spinner" /> working…</div>
+        </div>
       </div>
     </div>
 
@@ -179,6 +190,39 @@ async function onUpload(event: Event): Promise<void> {
   background: transparent;
   color: var(--text-faint);
   font-style: italic;
+}
+.bubble.steps {
+  background: var(--surface-3);
+  color: var(--text-muted);
+  font-style: normal;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.step.done {
+  color: var(--accent);
+}
+.step.active {
+  color: var(--text-muted);
+}
+.spinner {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--text-faint);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .composer {
   display: flex;

@@ -1,5 +1,5 @@
 """P&ID Extractor agent."""
 
-from .graph import build_extractor_graph, run_extractor
+from .graph import NODE_LABELS, build_extractor_graph, run_extractor
 
-__all__ = ["build_extractor_graph", "run_extractor"]
+__all__ = ["NODE_LABELS", "build_extractor_graph", "run_extractor"]
