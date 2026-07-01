@@ -24,17 +24,22 @@ function handleStyle(port: PortDef): Record<string, string> {
   return port.side === 'top' || port.side === 'bottom' ? { left: `${pct}%` } : { top: `${pct}%` };
 }
 
-const sizeStyle = computed(() => ({
+// The node box equals the SYMBOL box so Vue Flow anchors handles (and thus edge
+// endpoints) on the symbol perimeter. The label is floated below and excluded
+// from the box.
+const rootStyle = computed(() => ({
   width: `${props.data.meta.size.width}px`,
   height: `${props.data.meta.size.height}px`,
+}));
+const symbolStyle = computed(() => ({
   transform: props.data.rotation ? `rotate(${props.data.rotation}deg)` : undefined,
 }));
 </script>
 
 <template>
-  <div class="equipment-node" :class="{ selected: props.selected }">
+  <div class="equipment-node" :class="{ selected: props.selected }" :style="rootStyle">
     <!-- eslint-disable-next-line vue/no-v-html -- trusted first-party SVG assets -->
-    <div class="symbol-wrap" :style="sizeStyle" :title="data.meta.label" v-html="symbolSvg" />
+    <div class="symbol-wrap" :style="symbolStyle" :title="data.meta.label" v-html="symbolSvg" />
 
     <div v-if="data.label" class="node-label">{{ data.label }}</div>
 
@@ -60,12 +65,12 @@ const sizeStyle = computed(() => ({
 
 <style scoped>
 .equipment-node {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  position: relative;
   color: var(--text);
 }
 .symbol-wrap {
+  width: 100%;
+  height: 100%;
   display: grid;
   place-items: center;
   color: var(--node-stroke);
@@ -80,11 +85,16 @@ const sizeStyle = computed(() => ({
   color: var(--accent);
 }
 .node-label {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
   margin-top: 4px;
   font-size: 11px;
   font-weight: 600;
   color: var(--node-label);
   white-space: nowrap;
+  pointer-events: none;
 }
 .equipment-node.selected .node-label {
   color: var(--accent);

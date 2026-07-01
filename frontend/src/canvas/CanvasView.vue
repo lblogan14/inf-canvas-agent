@@ -88,8 +88,12 @@ onNodeDragStop((e: NodeDragEvent) => {
     if (store.isGroup(n.id)) store.moveGroupWithMembers(n.id, n.position);
     else moves.push({ op: 'move_node', id: n.id, position: n.position });
   }
-  if (moves.length === 1) store.moveNode(moves[0]!.id, moves[0]!.position);
-  else if (moves.length > 1) store.dispatch({ op: 'batch', commands: moves });
+  if (moves.length === 1) {
+    store.moveNode(moves[0]!.id, moves[0]!.position);
+    store.resolveOverlap(moves[0]!.id); // nudge off any node it landed on
+  } else if (moves.length > 1) {
+    store.dispatch({ op: 'batch', commands: moves });
+  }
 });
 
 onPaneClick(() => store.setSelection([]));
@@ -120,7 +124,11 @@ function onNodeDoubleClick(e: NodeMouseEvent) {
 function onDrop(event: DragEvent) {
   const type = event.dataTransfer?.getData('application/inf-equipment');
   if (!type || !isEquipmentType(type)) return;
-  store.addEquipment(type, screenToFlowCoordinate({ x: event.clientX, y: event.clientY }));
+  const id = store.addEquipment(
+    type,
+    screenToFlowCoordinate({ x: event.clientX, y: event.clientY }),
+  );
+  store.resolveOverlap(id); // if dropped onto another symbol, find a free spot
 }
 
 // --- spotlight (double-click to add) -----------------------------------

@@ -172,6 +172,46 @@ export const useCanvasStore = defineStore('canvas', () => {
     dispatch({ op: 'move_node', id, position });
   }
 
+  /**
+   * If the node overlaps any other node, move it to the nearest free spot via an
+   * expanding grid search. Called after a drop/drag so symbols never overlap.
+   */
+  function resolveOverlap(id: string, padding = 24): void {
+    const node = state.value.nodes.find((n) => n.id === id);
+    if (!node) return;
+    const size = getEquipmentMeta(node.type).size;
+    const others = state.value.nodes
+      .filter((n) => n.id !== id)
+      .map((n) => {
+        const s = getEquipmentMeta(n.type).size;
+        return { x: n.position.x, y: n.position.y, w: s.width, h: s.height };
+      });
+    const hits = (x: number, y: number): boolean =>
+      others.some(
+        (b) =>
+          x < b.x + b.w + padding &&
+          x + size.width + padding > b.x &&
+          y < b.y + b.h + padding &&
+          y + size.height + padding > b.y,
+      );
+    const orig = node.position;
+    if (!hits(orig.x, orig.y)) return;
+    const step = 20;
+    for (let ring = 1; ring <= 80; ring++) {
+      for (let dx = -ring; dx <= ring; dx++) {
+        for (let dy = -ring; dy <= ring; dy++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue; // ring border only
+          const x = orig.x + dx * step;
+          const y = orig.y + dy * step;
+          if (!hits(x, y)) {
+            moveNode(id, { x, y });
+            return;
+          }
+        }
+      }
+    }
+  }
+
   function updateNode(id: string, patch: { label?: string; rotation?: number }): void {
     dispatch({ op: 'update_node', id, patch });
   }
@@ -497,6 +537,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     addEquipment,
     connect,
     moveNode,
+    resolveOverlap,
     updateNode,
     removeNode,
     removeSelected,
