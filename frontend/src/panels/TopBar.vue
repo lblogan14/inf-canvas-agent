@@ -55,7 +55,7 @@ const linkStyles: LinkStyle[] = ['smoothstep', 'straight', 'step'];
 
 <template>
   <header class="topbar">
-    <div class="brand">⬡ Inf-Canvas</div>
+    <div class="brand">⬡ P&amp;ID Agent</div>
 
     <!-- Menus -->
     <nav class="menus">

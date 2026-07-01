@@ -100,7 +100,9 @@ onUnmounted(() => {
       v-model:y="ui.optimus.y"
       v-model:w="ui.optimus.w"
       v-model:h="ui.optimus.h"
+      v-model:minimized="ui.optimusMinimized"
       title="🤖 Optimus"
+      icon="🤖"
       @close="ui.optimusOpen = false"
     >
       <AgentPanel />

@@ -10,6 +10,7 @@ interface PersistedUi {
   leftOpen: boolean;
   rightOpen: boolean;
   optimusOpen: boolean;
+  optimusMinimized: boolean;
   snapToGrid: boolean;
   linkStyle: LinkStyle;
   favorites: EquipmentType[];
@@ -31,18 +32,29 @@ export const useUiStore = defineStore('ui', () => {
   const leftOpen = ref(saved.leftOpen ?? true);
   const rightOpen = ref(saved.rightOpen ?? true);
   const optimusOpen = ref(saved.optimusOpen ?? true);
+  const optimusMinimized = ref(saved.optimusMinimized ?? false);
   const snapToGrid = ref(saved.snapToGrid ?? false);
   const linkStyle = ref<LinkStyle>(saved.linkStyle ?? 'smoothstep');
   const favorites = ref<EquipmentType[]>(saved.favorites ?? []);
   const optimus = reactive(saved.optimus ?? { x: 260, y: 420, w: 380, h: 340 });
 
   watch(
-    [leftOpen, rightOpen, optimusOpen, snapToGrid, linkStyle, favorites, () => ({ ...optimus })],
+    [
+      leftOpen,
+      rightOpen,
+      optimusOpen,
+      optimusMinimized,
+      snapToGrid,
+      linkStyle,
+      favorites,
+      () => ({ ...optimus }),
+    ],
     () => {
       const data: PersistedUi = {
         leftOpen: leftOpen.value,
         rightOpen: rightOpen.value,
         optimusOpen: optimusOpen.value,
+        optimusMinimized: optimusMinimized.value,
         snapToGrid: snapToGrid.value,
         linkStyle: linkStyle.value,
         favorites: favorites.value,
@@ -67,6 +79,7 @@ export const useUiStore = defineStore('ui', () => {
     leftOpen,
     rightOpen,
     optimusOpen,
+    optimusMinimized,
     snapToGrid,
     linkStyle,
     favorites,

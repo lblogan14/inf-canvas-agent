@@ -3,8 +3,9 @@ const x = defineModel<number>('x', { required: true });
 const y = defineModel<number>('y', { required: true });
 const w = defineModel<number>('w', { required: true });
 const h = defineModel<number>('h', { required: true });
+const minimized = defineModel<boolean>('minimized', { default: false });
 
-defineProps<{ title: string }>();
+defineProps<{ title: string; icon?: string }>();
 const emit = defineEmits<{ close: [] }>();
 
 let mode: 'drag' | 'resize' | null = null;
@@ -14,11 +15,13 @@ let originX = 0;
 let originY = 0;
 let originW = 0;
 let originH = 0;
+let moved = false;
 
 function onMove(e: PointerEvent): void {
   if (!mode) return;
   const dx = e.clientX - startX;
   const dy = e.clientY - startY;
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
   if (mode === 'drag') {
     x.value = Math.max(0, originX + dx);
     y.value = Math.max(48, originY + dy);
@@ -36,6 +39,7 @@ function stop(): void {
 
 function start(e: PointerEvent, m: 'drag' | 'resize'): void {
   mode = m;
+  moved = false;
   startX = e.clientX;
   startY = e.clientY;
   originX = x.value;
@@ -45,16 +49,53 @@ function start(e: PointerEvent, m: 'drag' | 'resize'): void {
   window.addEventListener('pointermove', onMove);
   window.addEventListener('pointerup', stop);
 }
+
+function expand(): void {
+  // Reposition so the full panel stays inside the viewport (a bubble parked at
+  // an edge would otherwise open partly off-screen).
+  const margin = 8;
+  const maxX = Math.max(0, window.innerWidth - w.value - margin);
+  const maxY = Math.max(48, window.innerHeight - h.value - margin);
+  x.value = Math.min(Math.max(margin, x.value), maxX);
+  y.value = Math.min(Math.max(48, y.value), maxY);
+  minimized.value = false;
+}
+
+function onBubbleClick(): void {
+  // Ignore the click that ends a drag; only a real tap expands.
+  if (!moved) expand();
+}
 </script>
 
 <template>
+  <!-- Minimized: a small draggable round bubble -->
+  <button
+    v-if="minimized"
+    class="fp-bubble"
+    :style="{ left: `${x}px`, top: `${y}px` }"
+    :title="`${title} — click to expand`"
+    @pointerdown="start($event, 'drag')"
+    @click="onBubbleClick"
+  >
+    {{ icon ?? '🗪' }}
+  </button>
+
+  <!-- Expanded: full floating panel -->
   <div
+    v-else
     class="floating"
     :style="{ left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px` }"
   >
-    <div class="fp-header" @pointerdown="start($event, 'drag')">
+    <div class="fp-header" @pointerdown="start($event, 'drag')" @dblclick="minimized = true">
       <span class="fp-title">{{ title }}</span>
-      <button class="fp-close" title="Close" @pointerdown.stop @click="emit('close')">✕</button>
+      <div class="fp-actions">
+        <button class="fp-btn" title="Minimize" @pointerdown.stop @click="minimized = true">
+          –
+        </button>
+        <button class="fp-btn fp-close" title="Close" @pointerdown.stop @click="emit('close')">
+          ✕
+        </button>
+      </div>
     </div>
     <div class="fp-body">
       <slot />
@@ -75,6 +116,29 @@ function start(e: PointerEvent, m: 'drag' | 'resize'): void {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
   overflow: hidden;
 }
+.fp-bubble {
+  position: fixed;
+  z-index: 35;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 22px;
+  line-height: 1;
+  cursor: grab;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  display: grid;
+  place-items: center;
+  touch-action: none;
+}
+.fp-bubble:hover {
+  filter: brightness(1.05);
+}
+.fp-bubble:active {
+  cursor: grabbing;
+}
 .fp-header {
   display: flex;
   align-items: center;
@@ -89,12 +153,23 @@ function start(e: PointerEvent, m: 'drag' | 'resize'): void {
   font-weight: 600;
   color: var(--text);
 }
-.fp-close {
+.fp-actions {
+  display: flex;
+  gap: 2px;
+}
+.fp-btn {
   border: none;
   background: none;
   color: var(--text-muted);
   cursor: pointer;
   font-size: 13px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.fp-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
 }
 .fp-close:hover {
   color: var(--danger);

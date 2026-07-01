@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { nextTick, ref } from 'vue';
 import { useCanvasStore } from '@/stores/canvasStore';
+import { useSpeech } from '@/composables/useSpeech';
 import { api } from '@/api/client';
 
 const store = useCanvasStore();
+const { supported: voiceSupported, listening, start: startVoice, stop: stopVoice } = useSpeech();
 
 interface ChatEntry {
   role: 'user' | 'agent' | 'system';
@@ -43,6 +45,18 @@ async function send(): Promise<void> {
   }
 }
 
+function toggleVoice(): void {
+  if (listening.value) {
+    stopVoice();
+    return;
+  }
+  startVoice((text, isFinal) => {
+    input.value = text;
+    // Auto-send once the spoken phrase is finalized.
+    if (isFinal && text) void send();
+  });
+}
+
 async function onUpload(event: Event): Promise<void> {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (!file) return;
@@ -76,10 +90,20 @@ async function onUpload(event: Event): Promise<void> {
       <button class="icon" title="Upload P&ID image" :disabled="busy" @click="fileEl?.click()">
         📷
       </button>
+      <button
+        v-if="voiceSupported"
+        class="icon mic"
+        :class="{ listening }"
+        :title="listening ? 'Stop listening' : 'Speak your request'"
+        :disabled="busy"
+        @click="toggleVoice"
+      >
+        🎤
+      </button>
       <input
         v-model="input"
         class="text"
-        placeholder="Tell Optimus what to do…"
+        :placeholder="listening ? 'Listening…' : 'Tell Optimus what to do…'"
         :disabled="busy"
         @keydown.enter="send"
       />
@@ -159,6 +183,20 @@ async function onUpload(event: Event): Promise<void> {
   border: 1px solid var(--border);
   background: var(--surface-3);
   cursor: pointer;
+}
+.mic.listening {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
+  animation: mic-pulse 1.2s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 4px transparent;
+  }
 }
 .text {
   flex: 1;
