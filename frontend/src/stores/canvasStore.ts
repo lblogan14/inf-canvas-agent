@@ -11,6 +11,7 @@ import {
   type CommandMessage,
   type CommandSource,
   type EquipmentType,
+  type PipeData,
   type Position,
 } from '@/schema';
 import type { Edge as FlowEdge, Node as FlowNode } from '@vue-flow/core';
@@ -428,10 +429,25 @@ export const useCanvasStore = defineStore('canvas', () => {
       : null,
   );
 
+  const selectedEdge = computed(() =>
+    selectedIds.value.length === 1
+      ? (state.value.edges.find((e) => e.id === selectedIds.value[0]) ?? null)
+      : null,
+  );
+
+  /** Merge a patch into a connection's `data` (line type, label, ...). */
+  function updateEdgeData(edgeId: string, patch: Partial<PipeData>): void {
+    const e = state.value.edges.find((x) => x.id === edgeId);
+    if (!e) return;
+    dispatch({ op: 'update_edge', id: edgeId, patch: { ...e.data, ...patch } });
+  }
+
   return {
     state,
     selectedIds,
     selectedNode,
+    selectedEdge,
+    updateEdgeData,
     outbound,
     fitSignal,
     flowNodes,

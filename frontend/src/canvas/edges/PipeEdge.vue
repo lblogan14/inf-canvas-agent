@@ -11,6 +11,7 @@ import {
 import type { PipeData, Position } from '@/schema';
 import { useUiStore } from '@/stores/uiStore';
 import { useCanvasStore } from '@/stores/canvasStore';
+import { lineStyle } from './lineStyles';
 
 const props = defineProps<EdgeProps<PipeData>>();
 const ui = useUiStore();
@@ -79,10 +80,7 @@ function startDrag(index: number, e: PointerEvent): void {
   window.addEventListener('pointerup', endDrag);
 }
 
-const lineType = computed(() => props.data?.lineType ?? 'process');
-const dash = computed(() =>
-  lineType.value === 'signal' || lineType.value === 'pneumatic' ? '6 4' : undefined,
-);
+const style = computed(() => lineStyle(props.data?.lineType));
 </script>
 
 <template>
@@ -91,8 +89,8 @@ const dash = computed(() =>
     :path="path[0]"
     :style="{
       stroke: 'var(--edge)',
-      strokeWidth: lineType === 'process' ? 2.5 : 1.5,
-      strokeDasharray: dash,
+      strokeWidth: style.width,
+      strokeDasharray: style.dash,
     }"
     :marker-end="markerEnd"
   />

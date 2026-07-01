@@ -4,7 +4,7 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import { useUiStore } from '@/stores/uiStore';
 import { connectRealtime } from '@/realtime/ws';
 import TopBar from '@/panels/TopBar.vue';
-import NodeLibrary from '@/panels/NodeLibrary.vue';
+import LeftPanel from '@/panels/LeftPanel.vue';
 import CanvasView from '@/canvas/CanvasView.vue';
 import InspectorPanel from '@/panels/InspectorPanel.vue';
 import FloatingPanel from '@/panels/FloatingPanel.vue';
@@ -79,8 +79,8 @@ onUnmounted(() => {
   <div class="app">
     <TopBar />
     <div class="workspace">
-      <NodeLibrary v-if="ui.leftOpen" />
-      <button v-else class="edge-toggle left" title="Show node library" @click="ui.leftOpen = true">
+      <LeftPanel v-if="ui.leftOpen" />
+      <button v-else class="edge-toggle left" title="Show panel" @click="ui.leftOpen = true">
         ›
       </button>
 

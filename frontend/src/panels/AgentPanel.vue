@@ -162,7 +162,7 @@ async function runExtract(): Promise<void> {
           <span>Passes</span>
           <select v-model.number="opts.effort">
             <option :value="1">1 · fast</option>
-            <option :value="2">2</option>
+            <option :value="2">2 · balanced</option>
             <option :value="3">3 · thorough</option>
             <option :value="4">4 · max</option>
           </select>

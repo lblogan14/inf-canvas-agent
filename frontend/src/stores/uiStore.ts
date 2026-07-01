@@ -3,11 +3,13 @@ import { defineStore } from 'pinia';
 import type { EquipmentType } from '@/schema';
 
 export type LinkStyle = 'smoothstep' | 'straight' | 'step';
+export type LeftTab = 'project' | 'equipment' | 'legend';
 
 const STORAGE_KEY = 'inf-canvas-ui';
 
 interface PersistedUi {
   leftOpen: boolean;
+  leftTab: LeftTab;
   rightOpen: boolean;
   optimusOpen: boolean;
   optimusMinimized: boolean;
@@ -30,6 +32,7 @@ export const useUiStore = defineStore('ui', () => {
   const saved = load();
 
   const leftOpen = ref(saved.leftOpen ?? true);
+  const leftTab = ref<LeftTab>(saved.leftTab ?? 'equipment');
   const rightOpen = ref(saved.rightOpen ?? true);
   const optimusOpen = ref(saved.optimusOpen ?? true);
   const optimusMinimized = ref(saved.optimusMinimized ?? false);
@@ -41,6 +44,7 @@ export const useUiStore = defineStore('ui', () => {
   watch(
     [
       leftOpen,
+      leftTab,
       rightOpen,
       optimusOpen,
       optimusMinimized,
@@ -52,6 +56,7 @@ export const useUiStore = defineStore('ui', () => {
     () => {
       const data: PersistedUi = {
         leftOpen: leftOpen.value,
+        leftTab: leftTab.value,
         rightOpen: rightOpen.value,
         optimusOpen: optimusOpen.value,
         optimusMinimized: optimusMinimized.value,
@@ -77,6 +82,7 @@ export const useUiStore = defineStore('ui', () => {
 
   return {
     leftOpen,
+    leftTab,
     rightOpen,
     optimusOpen,
     optimusMinimized,

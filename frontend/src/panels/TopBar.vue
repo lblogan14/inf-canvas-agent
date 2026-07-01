@@ -134,7 +134,7 @@ const linkStyles: LinkStyle[] = ['smoothstep', 'straight', 'step'];
           </button>
           <div class="sep" />
           <button class="mi check" @click="ui.leftOpen = !ui.leftOpen">
-            <span>Node library</span><span>{{ ui.leftOpen ? '✓' : '' }}</span>
+            <span>Left panel</span><span>{{ ui.leftOpen ? '✓' : '' }}</span>
           </button>
           <button class="mi check" @click="ui.rightOpen = !ui.rightOpen">
             <span>Inspector</span><span>{{ ui.rightOpen ? '✓' : '' }}</span>

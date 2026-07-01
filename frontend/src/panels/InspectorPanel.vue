@@ -1,13 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { getEquipmentMeta } from '@/schema';
+import { getEquipmentMeta, type LineType } from '@/schema';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useUiStore } from '@/stores/uiStore';
+import { LINE_STYLES } from '@/canvas/edges/lineStyles';
 
 const store = useCanvasStore();
 const ui = useUiStore();
 const node = computed(() => store.selectedNode);
 const meta = computed(() => (node.value ? getEquipmentMeta(node.value.type) : null));
+
+const edge = computed(() => store.selectedEdge);
+const lineTypes = Object.entries(LINE_STYLES).map(([key, s]) => ({
+  key: key as LineType,
+  label: s.label,
+}));
 
 function rotate(): void {
   if (!node.value) return;
@@ -47,7 +54,41 @@ function rotate(): void {
       </div>
       <button class="action" @click="rotate">Rotate 90°</button>
     </template>
-    <div v-else class="empty">Select a node to edit its properties.</div>
+
+    <template v-else-if="edge">
+      <div class="field">
+        <label>Connection</label>
+        <div class="value">Pipe / signal line</div>
+      </div>
+      <div class="field">
+        <label>Line type</label>
+        <select
+          class="input"
+          :value="edge.data?.lineType ?? 'process'"
+          @change="
+            store.updateEdgeData(edge.id, {
+              lineType: ($event.target as HTMLSelectElement).value as LineType,
+            })
+          "
+        >
+          <option v-for="lt in lineTypes" :key="lt.key" :value="lt.key">{{ lt.label }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Line number / label</label>
+        <input
+          class="input"
+          :value="edge.data?.label ?? ''"
+          placeholder='e.g. 6"-P-1001-CS'
+          @change="
+            store.updateEdgeData(edge.id, { label: ($event.target as HTMLInputElement).value })
+          "
+        />
+      </div>
+      <p class="hint">Drag the handles on the selected pipe to reroute it.</p>
+    </template>
+
+    <div v-else class="empty">Select a node or connection to edit its properties.</div>
   </aside>
 </template>
 
@@ -122,6 +163,12 @@ function rotate(): void {
 }
 .action:hover {
   border-color: var(--accent);
+}
+.hint {
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.4;
+  margin: 8px 0 0;
 }
 .empty {
   font-size: 12px;

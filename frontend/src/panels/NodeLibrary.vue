@@ -45,10 +45,9 @@ function onDragStart(event: DragEvent, type: EquipmentType): void {
 </script>
 
 <template>
-  <aside class="library">
+  <div class="lib">
     <div class="search-row">
       <input v-model="search" class="search" placeholder="Search equipment…" />
-      <button class="collapse" title="Hide library" @click="ui.leftOpen = false">‹</button>
     </div>
 
     <div class="scroll">
@@ -98,17 +97,15 @@ function onDragStart(event: DragEvent, type: EquipmentType): void {
 
       <div v-if="!groups.length && !favorites.length" class="empty">No matches.</div>
     </div>
-  </aside>
+  </div>
 </template>
 
 <style scoped>
-.library {
+.lib {
   display: flex;
   flex-direction: column;
-  width: 220px;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 .search-row {
@@ -117,18 +114,6 @@ function onDragStart(event: DragEvent, type: EquipmentType): void {
   align-items: center;
   padding: 8px;
   border-bottom: 1px solid var(--border);
-}
-.collapse {
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-muted);
-  border-radius: 6px;
-  cursor: pointer;
-  padding: 4px 8px;
-}
-.collapse:hover {
-  color: var(--accent);
-  border-color: var(--accent);
 }
 .search {
   flex: 1;
