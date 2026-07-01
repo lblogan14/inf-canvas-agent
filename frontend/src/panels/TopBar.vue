@@ -152,6 +152,13 @@ const linkStyles: LinkStyle[] = ['smoothstep', 'straight', 'step'];
 
     <!-- Quick actions -->
     <div class="quick">
+      <button
+        class="qa kbd"
+        title="Command palette (Ctrl/⌘+K)"
+        @click="ui.commandPaletteOpen = true"
+      >
+        ⌘K
+      </button>
       <button class="qa" title="Undo (Ctrl+Z)" :disabled="!store.canUndo" @click="store.undo">
         ↶
       </button>
@@ -315,6 +322,13 @@ const linkStyles: LinkStyle[] = ['smoothstep', 'straight', 'step'];
 }
 .qa:hover:not(:disabled) {
   border-color: var(--accent);
+}
+.qa.kbd {
+  width: auto;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 .qa:disabled {
   opacity: 0.4;

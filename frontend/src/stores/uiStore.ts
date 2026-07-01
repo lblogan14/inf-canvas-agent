@@ -50,6 +50,8 @@ export const useUiStore = defineStore('ui', () => {
   const linkStyle = ref<LinkStyle>(saved.linkStyle ?? 'smoothstep');
   const favorites = ref<EquipmentType[]>(saved.favorites ?? []);
   const optimus = reactive(saved.optimus ?? { x: 260, y: 420, w: 380, h: 340 });
+  // Transient (not persisted): command palette visibility.
+  const commandPaletteOpen = ref(false);
 
   watch(
     [
@@ -108,6 +110,7 @@ export const useUiStore = defineStore('ui', () => {
     linkStyle,
     favorites,
     optimus,
+    commandPaletteOpen,
     toggleFavorite,
     isFavorite,
   };

@@ -9,6 +9,7 @@ import CanvasView from '@/canvas/CanvasView.vue';
 import InspectorPanel from '@/panels/InspectorPanel.vue';
 import FloatingPanel from '@/panels/FloatingPanel.vue';
 import AgentPanel from '@/panels/AgentPanel.vue';
+import CommandPalette from '@/panels/CommandPalette.vue';
 
 const store = useCanvasStore();
 const ui = useUiStore();
@@ -27,9 +28,17 @@ function isTyping(t: EventTarget | null): boolean {
 }
 
 function onKeydown(e: KeyboardEvent): void {
-  if (isTyping(e.target)) return;
   const mod = e.ctrlKey || e.metaKey;
   const key = e.key.toLowerCase();
+
+  // Command palette works from anywhere, including while typing.
+  if (mod && key === 'k') {
+    e.preventDefault();
+    ui.commandPaletteOpen = !ui.commandPaletteOpen;
+    return;
+  }
+
+  if (isTyping(e.target)) return;
 
   if (mod && key === 'z') {
     e.preventDefault();
@@ -107,6 +116,8 @@ onUnmounted(() => {
     >
       <AgentPanel />
     </FloatingPanel>
+
+    <CommandPalette v-if="ui.commandPaletteOpen" @close="ui.commandPaletteOpen = false" />
   </div>
 </template>
 
