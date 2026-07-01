@@ -72,6 +72,13 @@ watch(
   () => store.fitSignal,
   () => setTimeout(() => fitView({ padding: 0.2, maxZoom: 1.5 }), 60),
 );
+watch(
+  () => store.focusSignal.seq,
+  () => {
+    const ids = store.focusSignal.ids;
+    if (ids.length) setTimeout(() => fitView({ nodes: ids, padding: 0.5, maxZoom: 1.4 }), 60);
+  },
+);
 
 onConnect((params: Connection) => store.connect(params));
 

@@ -1,17 +1,24 @@
 <script setup lang="ts">
-import { onBeforeUnmount } from 'vue';
+import { computed, onBeforeUnmount } from 'vue';
 import { useUiStore, type LeftTab } from '@/stores/uiStore';
+import { useCanvasStore } from '@/stores/canvasStore';
+import { validateCanvas } from '@/canvas/validation';
 import ProjectPanel from './ProjectPanel.vue';
 import NodeLibrary from './NodeLibrary.vue';
 import LegendPanel from './LegendPanel.vue';
+import IssuesPanel from './IssuesPanel.vue';
 
 const ui = useUiStore();
+const store = useCanvasStore();
 
 const tabs: { key: LeftTab; label: string; icon: string }[] = [
   { key: 'project', label: 'Project', icon: '📁' },
   { key: 'equipment', label: 'Equipment', icon: '⚙️' },
   { key: 'legend', label: 'Legend', icon: '〰️' },
+  { key: 'issues', label: 'Issues', icon: '✓' },
 ];
+
+const issueCount = computed(() => validateCanvas(store.state).length);
 
 // --- draggable width ----------------------------------------------------
 let startX = 0;
@@ -50,7 +57,10 @@ onBeforeUnmount(endResize);
         :title="t.label"
         @click="ui.leftTab = t.key"
       >
-        <span class="ri">{{ t.icon }}</span>
+        <span class="ri">
+          {{ t.icon }}
+          <span v-if="t.key === 'issues' && issueCount" class="badge">{{ issueCount }}</span>
+        </span>
         <span class="rl">{{ t.label }}</span>
       </button>
       <div class="rail-spacer" />
@@ -64,6 +74,7 @@ onBeforeUnmount(endResize);
       <ProjectPanel v-show="ui.leftTab === 'project'" />
       <NodeLibrary v-show="ui.leftTab === 'equipment'" />
       <LegendPanel v-show="ui.leftTab === 'legend'" />
+      <IssuesPanel v-show="ui.leftTab === 'issues'" />
     </div>
 
     <div class="resizer" title="Drag to resize" @pointerdown="startResize" />
@@ -122,9 +133,25 @@ onBeforeUnmount(endResize);
   color: var(--accent);
 }
 .ri {
+  position: relative;
   flex: 0 0 22px;
   text-align: center;
   font-size: 16px;
+}
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: #d97706;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
 }
 .rl {
   font-size: 12px;

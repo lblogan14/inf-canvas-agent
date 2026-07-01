@@ -41,6 +41,8 @@ export const useCanvasStore = defineStore('canvas', () => {
   const selectedIds = ref<string[]>([]);
   /** Bumped to ask the canvas to re-frame (fitView). */
   const fitSignal = ref(0);
+  /** Bumped to ask the canvas to zoom to a specific set of nodes. */
+  const focusSignal = ref<{ ids: string[]; seq: number }>({ ids: [], seq: 0 });
 
   // Remember the active canvas so a reload reopens it (backend sends the saved
   // snapshot when the WS connects to this id).
@@ -307,6 +309,25 @@ export const useCanvasStore = defineStore('canvas', () => {
     fitSignal.value += 1;
   }
 
+  /** Select the given ids and zoom the canvas to frame them (used by Issues). */
+  function focusOn(ids: string[]): void {
+    setSelection(ids);
+    const nodeIds = new Set<string>();
+    for (const id of ids) {
+      if (state.value.nodes.some((n) => n.id === id)) nodeIds.add(id);
+      else {
+        const e = state.value.edges.find((x) => x.id === id);
+        if (e) {
+          nodeIds.add(e.source);
+          nodeIds.add(e.target);
+        }
+      }
+    }
+    if (nodeIds.size) {
+      focusSignal.value = { ids: [...nodeIds], seq: focusSignal.value.seq + 1 };
+    }
+  }
+
   /**
    * Re-arrange the whole graph with ELK: non-overlapping nodes + orthogonal
    * edge routing (applied as pipe waypoints so pipes avoid crossing equipment).
@@ -450,6 +471,8 @@ export const useCanvasStore = defineStore('canvas', () => {
     updateEdgeData,
     outbound,
     fitSignal,
+    focusSignal,
+    focusOn,
     flowNodes,
     flowEdges,
     flowGroupNodes,
