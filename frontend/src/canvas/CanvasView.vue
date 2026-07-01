@@ -16,6 +16,7 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useTheme } from '@/composables/useTheme';
 import EquipmentNode from './nodes/EquipmentNode.vue';
+import GroupNode from './nodes/GroupNode.vue';
 import PipeEdge from './edges/PipeEdge.vue';
 import ContextMenu, { type MenuItem } from './ContextMenu.vue';
 import SpotlightSearch from './SpotlightSearch.vue';
@@ -24,7 +25,7 @@ const store = useCanvasStore();
 const ui = useUiStore();
 const { theme } = useTheme();
 
-const nodeTypes = { equipment: markRaw(EquipmentNode) };
+const nodeTypes = { equipment: markRaw(EquipmentNode), group: markRaw(GroupNode) };
 const edgeTypes = { pipe: markRaw(PipeEdge) };
 
 const gridColor = computed(() => (theme.value === 'dark' ? '#334155' : '#cbd5e1'));
@@ -43,17 +44,20 @@ const {
   screenToFlowCoordinate,
 } = useVueFlow('main');
 
+// Groups render behind equipment; feed both to Vue Flow as one node array.
+const allFlowNodes = computed(() => [...store.flowGroupNodes, ...store.flowNodes]);
 let prevNodeCount = 0;
 watch(
-  () => store.flowNodes,
+  allFlowNodes,
   (nodes) => {
     setNodes(nodes);
-    // Auto-frame when a batch of content first appears (extraction/import/paste),
+    // Auto-frame when a batch of equipment first appears (extraction/import),
     // not for single manual adds. maxZoom keeps it from zooming in too far.
-    if (prevNodeCount === 0 && nodes.length > 2) {
+    const eq = store.flowNodes.length;
+    if (prevNodeCount === 0 && eq > 2) {
       setTimeout(() => fitView({ padding: 0.2, maxZoom: 1.2 }), 200);
     }
-    prevNodeCount = nodes.length;
+    prevNodeCount = eq;
   },
   { immediate: true, deep: false },
 );
@@ -70,7 +74,11 @@ watch(
 onConnect((params: Connection) => store.connect(params));
 
 onNodeDragStop((e: NodeDragEvent) => {
-  const moves = e.nodes.map((n) => ({ op: 'move_node' as const, id: n.id, position: n.position }));
+  const moves: { op: 'move_node'; id: string; position: { x: number; y: number } }[] = [];
+  for (const n of e.nodes) {
+    if (store.isGroup(n.id)) store.moveGroupWithMembers(n.id, n.position);
+    else moves.push({ op: 'move_node', id: n.id, position: n.position });
+  }
   if (moves.length === 1) store.moveNode(moves[0]!.id, moves[0]!.position);
   else if (moves.length > 1) store.dispatch({ op: 'batch', commands: moves });
 });
@@ -153,10 +161,27 @@ function onNodeContextMenu(payload: NodeMouseEvent) {
   const ev = payload.event as MouseEvent;
   ev.preventDefault();
   if (!store.selectedIds.includes(payload.node.id)) store.setSelection([payload.node.id]);
+
+  if (store.isGroup(payload.node.id)) {
+    ctx.value = {
+      x: ev.clientX,
+      y: ev.clientY,
+      items: [{ label: 'Delete group', action: () => store.removeSelected(), danger: true }],
+    };
+    return;
+  }
+
+  const selectedNodeCount = store.selectedIds.filter((id) => !store.isGroup(id)).length;
   ctx.value = {
     x: ev.clientX,
     y: ev.clientY,
     items: [
+      {
+        label: `Group selection (${selectedNodeCount})`,
+        action: () => store.createGroupFromSelection(),
+        disabled: selectedNodeCount < 1,
+      },
+      { separator: true },
       { label: 'Duplicate', action: () => store.duplicate() },
       { label: 'Copy', action: () => store.copy() },
       { label: 'Rotate 90°', action: () => rotate(payload.node.id) },
@@ -169,10 +194,18 @@ function onNodeContextMenu(payload: NodeMouseEvent) {
 function onEdgeContextMenu(payload: EdgeMouseEvent) {
   const ev = payload.event as MouseEvent;
   ev.preventDefault();
+  const pos = screenToFlowCoordinate({ x: ev.clientX, y: ev.clientY });
   ctx.value = {
     x: ev.clientX,
     y: ev.clientY,
     items: [
+      { label: 'Add reroute point', action: () => store.addWaypoint(payload.edge.id, pos) },
+      {
+        label: 'Clear reroute',
+        action: () => store.setWaypoints(payload.edge.id, []),
+        disabled: !payload.edge.data?.waypoints?.length,
+      },
+      { separator: true },
       {
         label: 'Delete pipe',
         action: () => store.dispatch({ op: 'disconnect', id: payload.edge.id }),
@@ -180,6 +213,11 @@ function onEdgeContextMenu(payload: EdgeMouseEvent) {
       },
     ],
   };
+}
+
+function onEdgeDoubleClick(payload: EdgeMouseEvent) {
+  const ev = payload.event as MouseEvent;
+  store.addWaypoint(payload.edge.id, screenToFlowCoordinate({ x: ev.clientX, y: ev.clientY }));
 }
 </script>
 
@@ -203,6 +241,7 @@ function onEdgeContextMenu(payload: EdgeMouseEvent) {
       @pane-context-menu="onPaneContextMenu"
       @node-context-menu="onNodeContextMenu"
       @edge-context-menu="onEdgeContextMenu"
+      @edge-double-click="onEdgeDoubleClick"
     >
       <Background :gap="20" :pattern-color="gridColor" />
       <Controls />

@@ -82,7 +82,14 @@ describe('applyCommand', () => {
       commands: [
         { op: 'add_node', id: 'a', equipment: 'vessel', position: { x: 0, y: 0 } },
         { op: 'add_node', id: 'b', equipment: 'storage_tank', position: { x: 200, y: 0 } },
-        { op: 'connect', id: 'e1', source: 'a', sourcePort: 'bottom', target: 'b', targetPort: 'fill' },
+        {
+          op: 'connect',
+          id: 'e1',
+          source: 'a',
+          sourcePort: 'bottom',
+          target: 'b',
+          targetPort: 'fill',
+        },
       ],
     });
     state = applyCommand(state, {

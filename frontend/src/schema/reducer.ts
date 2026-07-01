@@ -119,9 +119,7 @@ export function applyCommand(state: CanvasState, command: CanvasCommand): Canvas
     case 'update_group': {
       return {
         ...state,
-        groups: state.groups.map((g) =>
-          g.id === command.id ? { ...g, ...command.patch } : g,
-        ),
+        groups: state.groups.map((g) => (g.id === command.id ? { ...g, ...command.patch } : g)),
       };
     }
 

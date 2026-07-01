@@ -48,6 +48,9 @@ function onKeydown(e: KeyboardEvent): void {
   } else if (mod && key === 'a') {
     e.preventDefault();
     store.selectAll();
+  } else if (mod && key === 'g') {
+    e.preventDefault();
+    store.createGroupFromSelection();
   } else if (key === 'delete' || key === 'backspace') {
     e.preventDefault();
     store.removeSelected();

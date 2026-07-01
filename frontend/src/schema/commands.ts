@@ -81,7 +81,9 @@ export interface AddGroupCommand {
 export interface UpdateGroupCommand {
   op: 'update_group';
   id: string;
-  patch: Partial<Pick<CanvasGroup, 'label' | 'color' | 'position' | 'width' | 'height' | 'memberIds'>>;
+  patch: Partial<
+    Pick<CanvasGroup, 'label' | 'color' | 'position' | 'width' | 'height' | 'memberIds'>
+  >;
 }
 
 export interface RemoveGroupCommand {

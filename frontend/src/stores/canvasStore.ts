@@ -80,6 +80,7 @@ export const useCanvasStore = defineStore('canvas', () => {
       type: 'equipment',
       position: n.position,
       selected: selectedIds.value.includes(n.id),
+      zIndex: 1,
       data: {
         type: n.type,
         label: n.label,
@@ -99,6 +100,22 @@ export const useCanvasStore = defineStore('canvas', () => {
       type: 'pipe',
       data: e.data,
       animated: e.data?.animated ?? false,
+    })),
+  );
+
+  /** Group regions rendered as Vue Flow nodes behind the equipment. */
+  const flowGroupNodes = computed<FlowNode[]>(() =>
+    state.value.groups.map((g) => ({
+      id: g.id,
+      type: 'group',
+      position: g.position,
+      style: { width: `${g.width}px`, height: `${g.height}px` },
+      data: { label: g.label, color: g.color },
+      selected: selectedIds.value.includes(g.id),
+      zIndex: 0,
+      // Groups sit behind equipment; equipment is draggable on top of them.
+      selectable: true,
+      draggable: true,
     })),
   );
 
@@ -164,12 +181,121 @@ export const useCanvasStore = defineStore('canvas', () => {
     const ids = [...selectedIds.value];
     if (!ids.length) return;
     selectedIds.value = [];
+    const nodeIds = new Set(state.value.nodes.map((n) => n.id));
+    const groupIds = new Set(state.value.groups.map((g) => g.id));
     const commands: CanvasCommand[] = ids.map((id) =>
-      state.value.nodes.some((n) => n.id === id)
+      nodeIds.has(id)
         ? { op: 'remove_node', id }
-        : { op: 'disconnect', id },
+        : groupIds.has(id)
+          ? { op: 'remove_group', id }
+          : { op: 'disconnect', id },
     );
     dispatch({ op: 'batch', commands });
+  }
+
+  // --- groups -------------------------------------------------------------
+  function createGroupFromSelection(label = 'Group'): void {
+    const ids = selectedIds.value.filter((id) => state.value.nodes.some((n) => n.id === id));
+    if (!ids.length) return;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const id of ids) {
+      const n = state.value.nodes.find((x) => x.id === id);
+      if (!n) continue;
+      const { size } = getEquipmentMeta(n.type);
+      minX = Math.min(minX, n.position.x);
+      minY = Math.min(minY, n.position.y);
+      maxX = Math.max(maxX, n.position.x + size.width);
+      maxY = Math.max(maxY, n.position.y + size.height);
+    }
+    const pad = 40;
+    const title = 28;
+    const id = uid('g');
+    dispatch({
+      op: 'add_group',
+      id,
+      label,
+      position: { x: minX - pad, y: minY - pad - title },
+      width: maxX - minX + pad * 2,
+      height: maxY - minY + pad * 2 + title,
+      memberIds: ids,
+    });
+    selectedIds.value = [id];
+  }
+
+  function updateGroup(id: string, patch: { label?: string; color?: string }): void {
+    dispatch({ op: 'update_group', id, patch });
+  }
+
+  /** Move a group and all its member nodes by the same delta (one batch). */
+  function moveGroupWithMembers(id: string, position: Position): void {
+    const g = state.value.groups.find((x) => x.id === id);
+    if (!g) return;
+    const dx = position.x - g.position.x;
+    const dy = position.y - g.position.y;
+    const commands: CanvasCommand[] = [{ op: 'update_group', id, patch: { position } }];
+    for (const mid of g.memberIds) {
+      const n = state.value.nodes.find((x) => x.id === mid);
+      if (n) {
+        commands.push({
+          op: 'move_node',
+          id: mid,
+          position: { x: n.position.x + dx, y: n.position.y + dy },
+        });
+      }
+    }
+    dispatch({ op: 'batch', commands });
+  }
+
+  function isGroup(id: string): boolean {
+    return state.value.groups.some((g) => g.id === id);
+  }
+
+  // --- reroute (edge waypoints) ------------------------------------------
+  function nodeCenter(nodeId: string): Position | null {
+    const n = state.value.nodes.find((x) => x.id === nodeId);
+    if (!n) return null;
+    const { size } = getEquipmentMeta(n.type);
+    return { x: n.position.x + size.width / 2, y: n.position.y + size.height / 2 };
+  }
+
+  function setWaypoints(edgeId: string, waypoints: Position[]): void {
+    const e = state.value.edges.find((x) => x.id === edgeId);
+    if (!e) return;
+    dispatch({ op: 'update_edge', id: edgeId, patch: { ...e.data, waypoints } });
+  }
+
+  /** Insert a waypoint into the segment nearest to `point`. */
+  function addWaypoint(edgeId: string, point: Position): void {
+    const e = state.value.edges.find((x) => x.id === edgeId);
+    if (!e) return;
+    const src = nodeCenter(e.source);
+    const tgt = nodeCenter(e.target);
+    if (!src || !tgt) return;
+    const wps = [...(e.data?.waypoints ?? [])];
+    const chain = [src, ...wps, tgt];
+    const dist = (a: Position, b: Position) => Math.hypot(a.x - b.x, a.y - b.y);
+    let best = 0;
+    let bestCost = Infinity;
+    for (let i = 0; i < chain.length - 1; i++) {
+      const cost =
+        dist(chain[i]!, point) + dist(point, chain[i + 1]!) - dist(chain[i]!, chain[i + 1]!);
+      if (cost < bestCost) {
+        bestCost = cost;
+        best = i;
+      }
+    }
+    wps.splice(best, 0, point);
+    setWaypoints(edgeId, wps);
+  }
+
+  function removeWaypoint(edgeId: string, index: number): void {
+    const e = state.value.edges.find((x) => x.id === edgeId);
+    if (!e?.data?.waypoints) return;
+    const wps = e.data.waypoints.filter((_, i) => i !== index);
+    setWaypoints(edgeId, wps);
   }
 
   function setSelection(ids: string[]): void {
@@ -297,6 +423,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     fitSignal,
     flowNodes,
     flowEdges,
+    flowGroupNodes,
     canUndo,
     canRedo,
     hasClipboard,
@@ -317,6 +444,13 @@ export const useCanvasStore = defineStore('canvas', () => {
     pasteAt,
     duplicate,
     selectAll,
+    createGroupFromSelection,
+    updateGroup,
+    moveGroupWithMembers,
+    isGroup,
+    setWaypoints,
+    addWaypoint,
+    removeWaypoint,
     loadState,
     newCanvas,
   };
