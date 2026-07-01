@@ -54,7 +54,8 @@ async def optimus(req: OptimusRequest, bus: CommandBus = Depends(get_bus)) -> St
     graph = build_optimus_graph(model)
 
     async def on_done(state: dict[str, Any]) -> dict[str, Any]:
-        applied = await bus.apply_many(req.canvasId, state.get("commands", []), "agent:optimus")
+        # Build step-by-step so the canvas fills in visibly.
+        applied = await bus.apply_sequence(req.canvasId, state.get("commands", []), "agent:optimus")
         return {"message": state.get("reply") or "Done.", "commandsApplied": applied}
 
     return StreamingResponse(
@@ -73,7 +74,10 @@ async def commander(req: CommanderRequest, bus: CommandBus = Depends(get_bus)) -
     graph = build_commander_graph(model)
 
     async def on_done(state: dict[str, Any]) -> dict[str, Any]:
-        applied = await bus.apply_many(req.canvasId, state.get("commands", []), "agent:commander")
+        # Build step-by-step so the canvas fills in visibly.
+        applied = await bus.apply_sequence(
+            req.canvasId, state.get("commands", []), "agent:commander"
+        )
         return {"message": state.get("reply") or "Done.", "commandsApplied": applied}
 
     return StreamingResponse(
