@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useCanvasIo } from '@/composables/useCanvasIo';
+import { REPORT_BUILDERS, toCsv } from '@/canvas/reports';
 import { api, type ProjectSummary } from '@/api/client';
 
 const store = useCanvasStore();
@@ -57,6 +58,19 @@ function onImport(e: Event): void {
   if (fileInput.value) fileInput.value.value = '';
 }
 
+function exportReport(key: string): void {
+  const builder = REPORT_BUILDERS.find((b) => b.key === key);
+  if (!builder) return;
+  const report = builder.build(store.state);
+  const blob = new Blob([toCsv(report)], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${store.state.meta.name || 'canvas'}-${report.slug}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 onMounted(refresh);
 </script>
 
@@ -101,6 +115,21 @@ onMounted(refresh);
           <button class="btn" @click="exportPng">Export PNG</button>
         </div>
         <div v-if="savedAt" class="saved-note">Saved at {{ savedAt }}</div>
+      </section>
+
+      <section class="block">
+        <div class="block-head">Reports (CSV)</div>
+        <div class="report-list">
+          <button
+            v-for="r in REPORT_BUILDERS"
+            :key="r.key"
+            class="btn report"
+            @click="exportReport(r.key)"
+          >
+            <span>{{ r.label }}</span>
+            <span class="dl">↓</span>
+          </button>
+        </div>
       </section>
 
       <section class="block">
@@ -231,6 +260,22 @@ onMounted(refresh);
   font-size: 10px;
   color: var(--text-faint);
   margin-top: 6px;
+}
+.report-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.report {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.report .dl {
+  color: var(--text-faint);
+}
+.report:hover .dl {
+  color: var(--accent);
 }
 .open-list {
   display: flex;
