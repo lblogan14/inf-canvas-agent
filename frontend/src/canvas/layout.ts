@@ -1,7 +1,20 @@
-import ELK from 'elkjs/lib/elk.bundled.js';
 import { getEquipmentMeta, type CanvasEdge, type CanvasNode, type Position } from '@/schema';
 
-const elk = new ELK();
+interface ElkEngine {
+  layout(graph: unknown): Promise<ElkResult>;
+}
+
+// Lazy-load ELK so its ~1.4 MB bundle stays out of the initial app load and is
+// only fetched the first time auto-layout runs.
+let elkInstance: ElkEngine | null = null;
+async function getElk(): Promise<ElkEngine> {
+  if (!elkInstance) {
+    const mod = await import('elkjs/lib/elk.bundled.js');
+    const ELK = mod.default as new () => ElkEngine;
+    elkInstance = new ELK();
+  }
+  return elkInstance;
+}
 
 export interface NodeMove {
   id: string;
@@ -58,7 +71,8 @@ export async function computeAutoLayout(
     edges: edges.map((e) => ({ id: e.id, sources: [e.source], targets: [e.target] })),
   };
 
-  const laidOut = (await elk.layout(graph)) as ElkResult;
+  const elk = await getElk();
+  const laidOut = await elk.layout(graph);
 
   const moves: NodeMove[] = (laidOut.children ?? []).map((c) => ({
     id: c.id,

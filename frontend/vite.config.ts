@@ -6,6 +6,10 @@ import tailwindcss from '@tailwindcss/vite';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
+  build: {
+    // elkjs is a deliberately large, lazy-loaded vendor chunk (auto-layout only).
+    chunkSizeWarningLimit: 1600,
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
