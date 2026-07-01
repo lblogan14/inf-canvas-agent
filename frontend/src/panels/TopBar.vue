@@ -197,16 +197,17 @@ const linkStyles: LinkStyle[] = ['smoothstep', 'straight', 'step'];
 .brand {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-weight: 700;
-  font-size: 14px;
+  gap: 9px;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.01em;
   color: var(--accent);
-  margin-right: 6px;
+  margin-right: 14px;
 }
 .brand-icon {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
 }
 .menus {
   display: flex;
