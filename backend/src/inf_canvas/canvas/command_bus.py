@@ -38,6 +38,12 @@ class CommandBus:
                 self._repo.save(state)
         return state
 
+    async def delete(self, canvas_id: str) -> bool:
+        """Forget a canvas from memory and delete its persisted file."""
+        async with self._lock:
+            self._states.pop(canvas_id, None)
+            return self._repo.delete(canvas_id)
+
     async def apply(
         self,
         canvas_id: str,

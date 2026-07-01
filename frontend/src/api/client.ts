@@ -109,6 +109,11 @@ export const api = {
       body: JSON.stringify(state),
     }).then((r) => json<CanvasState>(r)),
 
+  deleteProject: (id: string): Promise<{ deleted: boolean }> =>
+    fetch(`${BASE}/projects/${id}`, { method: 'DELETE' }).then((r) =>
+      json<{ deleted: boolean }>(r),
+    ),
+
   /** Optimus orchestrator: routes the message to the right sub-agent (streamed). */
   runOptimus: (canvasId: string, message: string, onStep?: (s: AgentStep) => void) =>
     streamAgent(

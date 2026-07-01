@@ -146,7 +146,12 @@ const linkStyles: LinkStyle[] = ['smoothstep', 'straight', 'step'];
       </div>
     </nav>
 
-    <input v-model="store.state.meta.name" class="name" placeholder="Canvas name" />
+    <input
+      :value="store.state.meta.name"
+      class="name"
+      placeholder="Canvas name"
+      @input="store.renameCanvas(($event.target as HTMLInputElement).value)"
+    />
 
     <div class="spacer" />
 

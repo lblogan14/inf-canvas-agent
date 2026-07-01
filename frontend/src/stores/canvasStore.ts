@@ -309,6 +309,18 @@ export const useCanvasStore = defineStore('canvas', () => {
     fitSignal.value += 1;
   }
 
+  // Rename is metadata (not a canvas command), so persist it directly, debounced
+  // so it survives reloads instead of being reverted by the backend snapshot.
+  let renameTimer: ReturnType<typeof setTimeout> | null = null;
+  function renameCanvas(name: string): void {
+    state.value.meta.name = name;
+    state.value.meta.updatedAt = new Date().toISOString();
+    if (renameTimer) clearTimeout(renameTimer);
+    renameTimer = setTimeout(() => {
+      void api.saveProject(state.value);
+    }, 500);
+  }
+
   /** Select the given ids and zoom the canvas to frame them (used by Issues). */
   function focusOn(ids: string[]): void {
     setSelection(ids);
@@ -489,6 +501,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     removeSelected,
     setSelection,
     requestFit,
+    renameCanvas,
     autoLayout,
     undo,
     redo,

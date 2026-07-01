@@ -47,6 +47,13 @@ async function open(id: string): Promise<void> {
   store.requestFit();
 }
 
+async function remove(p: ProjectSummary): Promise<void> {
+  if (!confirm(`Delete "${p.name || 'Untitled'}"? This cannot be undone.`)) return;
+  await api.deleteProject(p.id).catch((err) => alert((err as Error).message));
+  if (p.id === store.state.meta.id) store.newCanvas();
+  await refresh();
+}
+
 function newCanvas(): void {
   store.newCanvas();
   savedAt.value = null;
@@ -79,7 +86,12 @@ onMounted(refresh);
     <div class="scroll">
       <section class="block">
         <div class="block-head">Current project</div>
-        <input v-model="store.state.meta.name" class="name" placeholder="Untitled" />
+        <input
+          :value="store.state.meta.name"
+          class="name"
+          placeholder="Untitled"
+          @input="store.renameCanvas(($event.target as HTMLInputElement).value)"
+        />
         <div class="meta-row">
           <span class="dim mono">{{ store.state.meta.id }}</span>
         </div>
@@ -135,16 +147,18 @@ onMounted(refresh);
       <section class="block">
         <div class="block-head">Saved projects</div>
         <div class="open-list">
-          <button
+          <div
             v-for="p in projects"
             :key="p.id"
             class="proj"
             :class="{ current: p.id === store.state.meta.id }"
-            @click="open(p.id)"
           >
-            <span class="proj-name">{{ p.name || 'Untitled' }}</span>
-            <span v-if="p.id === store.state.meta.id" class="badge">current</span>
-          </button>
+            <button class="proj-open" :title="`Open ${p.name || 'Untitled'}`" @click="open(p.id)">
+              <span class="proj-name">{{ p.name || 'Untitled' }}</span>
+              <span v-if="p.id === store.state.meta.id" class="badge">current</span>
+            </button>
+            <button class="proj-del" title="Delete project" @click="remove(p)">✕</button>
+          </div>
           <div v-if="!projects.length" class="empty">No saved projects yet.</div>
         </div>
       </section>
@@ -284,24 +298,46 @@ onMounted(refresh);
 }
 .proj {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  align-items: stretch;
+  gap: 4px;
   width: 100%;
-  text-align: left;
-  font-size: 12px;
-  padding: 7px 8px;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface-2);
+  overflow: hidden;
+}
+.proj:hover,
+.proj.current {
+  border-color: var(--accent);
+}
+.proj-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  text-align: left;
+  font-size: 12px;
+  padding: 7px 8px;
+  border: none;
+  background: none;
   color: var(--text);
   cursor: pointer;
 }
-.proj:hover {
-  border-color: var(--accent);
+.proj-del {
+  flex: 0 0 auto;
+  border: none;
+  border-left: 1px solid var(--border);
+  background: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 0 9px;
+  font-size: 11px;
 }
-.proj.current {
-  border-color: var(--accent);
+.proj-del:hover {
+  color: #fff;
+  background: var(--danger, #ef4444);
 }
 .proj-name {
   overflow: hidden;
