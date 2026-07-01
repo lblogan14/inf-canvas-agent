@@ -62,10 +62,29 @@ Reads the **repo-root `.env`** (`backend/.env` also supported):
 | `GOOGLE_API_KEY` | _(empty)_ | Gemini key (other providers use their own env var) |
 | `STORAGE_DIR` | `storage` | where projects/uploads live |
 | `FRONTEND_ORIGIN` | `http://localhost:5173` | CORS origin |
-| `EXTRACTOR_VERIFY` | `true` | Set-of-Mark verifier pass |
-| `EXTRACTOR_LINE_HYBRID` | `true` | OpenCV line-connection proposals |
+| `EXTRACTOR_VERIFY` | `true` | Set-of-Mark verifier pass (default when the client omits it) |
+| `EXTRACTOR_LINE_HYBRID` | `true` | OpenCV line-connection proposals (default when omitted) |
 
 `MODEL_*` are provider-agnostic (legacy `GEMINI_MODEL_*` aliases still work).
+
+### P&ID extraction options
+
+`POST /api/agents/pid/extract` is a multipart form. Beyond `canvas_id` + `image`,
+the client picks accuracy/speed trade-offs per run (the frontend surfaces these in
+a setup card shown after upload — extraction does not auto-start):
+
+| Field | Default | Purpose |
+| --- | --- | --- |
+| `hint` | `""` | Free-text guidance (expected symbol count, focus areas) fed to detect/connect |
+| `effort` | `1` | Self-consistency detection rounds (1–4): pool + NMS across rounds |
+| `use_tiling` | `false` | Crop into an overlapping `tile_cols`×`tile_rows` grid, detect per tile at full res, remap boxes to global coords, then NMS-merge — the biggest lever for dense 100+ symbol sheets |
+| `tile_cols` / `tile_rows` | `2` / `2` | Tile grid (1–4 each) |
+| `use_legend` | `false` | Read the drawing's symbol legend first and use it as a prior |
+| `use_verify` | _(EXTRACTOR_VERIFY)_ | Set-of-Mark verifier pass |
+| `use_line_hybrid` | _(EXTRACTOR_LINE_HYBRID)_ | OpenCV line-connection proposals |
+
+Tiling and higher `effort` multiply vision calls (`effort × cols × rows` for a
+tiled run), so they add latency — enable them for dense sheets, not quick sketches.
 
 ### Model providers
 

@@ -14,10 +14,11 @@ from ..ai.agents.canvas_commander import build_commander_graph
 from ..ai.agents.orchestrator import NODE_LABELS as OPTIMUS_LABELS
 from ..ai.agents.orchestrator import build_optimus_graph
 from ..ai.agents.pid_extractor import NODE_LABELS as EXTRACTOR_LABELS
-from ..ai.agents.pid_extractor import build_extractor_graph
+from ..ai.agents.pid_extractor import ExtractOptions, build_extractor_graph
 from ..ai.models import ModelError, get_model_client
 from ..ai.models.base import ModelClient
 from ..canvas.command_bus import CommandBus
+from ..config import get_settings
 from .deps import get_bus
 from .streaming import stream_graph_events
 
@@ -93,13 +94,36 @@ async def commander(req: CommanderRequest, bus: CommandBus = Depends(get_bus)) -
 async def pid_extract(
     canvas_id: str = Form(...),
     image: UploadFile = File(...),
+    hint: str = Form(""),
+    effort: int = Form(1),
+    use_tiling: bool = Form(False),
+    tile_cols: int = Form(2),
+    tile_rows: int = Form(2),
+    use_legend: bool = Form(False),
+    # Verify / line-hybrid default to the server settings when the client omits them.
+    use_verify: bool | None = Form(None),
+    use_line_hybrid: bool | None = Form(None),
     bus: CommandBus = Depends(get_bus),
 ) -> StreamingResponse:
     model = _model()
+    settings = get_settings()
     data = await image.read()
     mime = image.content_type or "image/png"
     canvas = await bus.get_state(canvas_id)
     graph = build_extractor_graph(model)
+
+    opts = ExtractOptions(
+        hint=hint,
+        effort=effort,
+        use_tiling=use_tiling,
+        tile_cols=tile_cols,
+        tile_rows=tile_rows,
+        use_legend=use_legend,
+        use_verify=settings.extractor_verify if use_verify is None else use_verify,
+        use_line_hybrid=(
+            settings.extractor_line_hybrid if use_line_hybrid is None else use_line_hybrid
+        ),
+    )
 
     async def on_done(state: dict[str, Any]) -> dict[str, Any]:
         applied = await bus.apply_many(canvas_id, state.get("commands", []), "agent:pid_extractor")
@@ -111,7 +135,7 @@ async def pid_extract(
     return StreamingResponse(
         stream_graph_events(
             graph,
-            {"image": data, "mime_type": mime, "canvas": canvas},
+            {"image": data, "mime_type": mime, "canvas": canvas, "opts": opts},
             EXTRACTOR_LABELS,
             on_done,
         ),

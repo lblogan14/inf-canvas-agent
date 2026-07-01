@@ -11,6 +11,16 @@ structured extraction, so be accurate about what is actually drawn."""
 
 DESCRIBER_USER = "Describe this P&ID: its equipment, tags, and how material flows through it."
 
+# --- optional: legend reader (few-shot prior) ---------------------------
+LEGEND_SYSTEM = """You are reading a P&ID's symbol legend / key. If the drawing
+has a legend, transcribe it as a compact mapping from each legend symbol's
+description or abbreviation to the equipment it denotes (e.g. "bow-tie = gate
+valve", "circle with horizontal line = instrument", "PSV = relief valve"). This
+mapping will ground a later extraction, so keep it faithful to THIS drawing's
+conventions. If there is no legend, reply exactly: NONE."""
+
+LEGEND_USER = "Transcribe the symbol legend of this P&ID, or reply NONE if absent."
+
 # --- pass 1: equipment detection (with boxes) ---------------------------
 EQUIPMENT_SYSTEM = f"""You are a P&ID extraction expert. Detect EVERY piece of
 equipment in the image and return a tight bounding box for each.

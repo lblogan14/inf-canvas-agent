@@ -28,6 +28,24 @@ export interface AgentResult {
   commandsApplied: number;
 }
 
+/** Per-run P&ID extraction controls the user sets before extracting. */
+export interface ExtractOptions {
+  /** Free-text guidance, e.g. expected symbol count or areas to focus on. */
+  hint?: string;
+  /** Self-consistency detection rounds (1–4): more = better recall, slower. */
+  effort?: number;
+  /** Crop into overlapping tiles and detect per tile (dense sheets). */
+  useTiling?: boolean;
+  tileCols?: number;
+  tileRows?: number;
+  /** Read the drawing's symbol legend first and use it as a prior. */
+  useLegend?: boolean;
+  /** Set-of-Mark verifier pass. */
+  useVerify?: boolean;
+  /** OpenCV line-connection proposals. */
+  useLineHybrid?: boolean;
+}
+
 /**
  * Consume a Server-Sent Events stream from an agent endpoint. `onStep` fires as
  * each LangGraph node completes; resolves with the final result.
@@ -116,10 +134,23 @@ export const api = {
     ),
 
   /** P&ID Extractor: upload an image, extract equipment + connections (streamed). */
-  extractPID: (canvasId: string, file: File, onStep?: (s: AgentStep) => void) => {
+  extractPID: (
+    canvasId: string,
+    file: File,
+    opts: ExtractOptions = {},
+    onStep?: (s: AgentStep) => void,
+  ) => {
     const form = new FormData();
     form.append('canvas_id', canvasId);
     form.append('image', file);
+    if (opts.hint) form.append('hint', opts.hint);
+    if (opts.effort != null) form.append('effort', String(opts.effort));
+    if (opts.useTiling != null) form.append('use_tiling', String(opts.useTiling));
+    if (opts.tileCols != null) form.append('tile_cols', String(opts.tileCols));
+    if (opts.tileRows != null) form.append('tile_rows', String(opts.tileRows));
+    if (opts.useLegend != null) form.append('use_legend', String(opts.useLegend));
+    if (opts.useVerify != null) form.append('use_verify', String(opts.useVerify));
+    if (opts.useLineHybrid != null) form.append('use_line_hybrid', String(opts.useLineHybrid));
     return streamAgent(`${BASE}/agents/pid/extract`, { method: 'POST', body: form }, onStep);
   },
 };

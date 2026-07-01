@@ -53,6 +53,37 @@ class TypeFix(BaseModel):
     type: EquipmentType
 
 
+class ExtractOptions(BaseModel):
+    """Per-request extraction controls the user sets before running.
+
+    These override the server defaults so the user can trade accuracy for speed
+    on a case-by-case basis (dense sheet vs. quick sketch).
+    """
+
+    hint: str = Field(
+        default="",
+        description="Free-text guidance, e.g. expected symbol count or areas to focus on.",
+    )
+    effort: int = Field(
+        default=1,
+        ge=1,
+        le=4,
+        description="Self-consistency detection rounds; higher = better recall, slower.",
+    )
+    use_tiling: bool = Field(
+        default=False,
+        description="Crop into overlapping tiles and detect per tile (dense 100+ symbol sheets).",
+    )
+    tile_cols: int = Field(default=2, ge=1, le=4, description="Tile grid columns.")
+    tile_rows: int = Field(default=2, ge=1, le=4, description="Tile grid rows.")
+    use_legend: bool = Field(
+        default=False,
+        description="Read the drawing's symbol legend first and use it as a prior.",
+    )
+    use_verify: bool = Field(default=True, description="Set-of-Mark verifier pass.")
+    use_line_hybrid: bool = Field(default=True, description="OpenCV line-connection proposals.")
+
+
 class VerificationResult(BaseModel):
     """Corrections from the Set-of-Mark verifier pass."""
 

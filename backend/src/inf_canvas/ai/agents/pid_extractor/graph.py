@@ -1,27 +1,30 @@
-"""P&ID Extractor graph (LangGraph), two-pass with descriptor prior, a
-Set-of-Mark verifier pass, and an OpenCV line-detection hybrid.
+"""P&ID Extractor graph (LangGraph), two-pass with descriptor prior, an optional
+legend few-shot prior, tiled/self-consistent detection, a Set-of-Mark verifier
+pass, and an OpenCV line-detection hybrid. Every accuracy pass is gated by the
+per-request `ExtractOptions` the user sets before running.
 
-describe -> detect_equipment (boxes) -> connect (constrained to refs)
-        -> verify (Set-of-Mark critic, optional) -> line_augment (OpenCV, optional)
-        -> normalize (dedupe/filter) -> place (boxes -> canvas) -> summarize
+describe -> legend (optional) -> detect_equipment (boxes; tiled + N rounds)
+        -> connect (constrained to refs) -> verify (Set-of-Mark, optional)
+        -> line_augment (OpenCV, optional) -> normalize -> place -> summarize
 """
 
 from typing import Any
 
 from langgraph.graph import END, START, StateGraph
 
-from inf_canvas.ai.agents.shared import annotate, layout, lines, tools
+from inf_canvas.ai.agents.shared import annotate, layout, lines, tiling, tools
 from inf_canvas.ai.models.base import ModelClient
-from inf_canvas.config import get_settings
 from inf_canvas.schema.canvas import CanvasState
 from inf_canvas.schema.commands import CanvasCommand
 
 from . import prompts
 from .schemas import (
+    Box,
     ConnectionList,
     DetectedConnection,
     DetectedEquipment,
     EquipmentList,
+    ExtractOptions,
     VerificationResult,
 )
 from .states import ExtractorState
@@ -32,6 +35,7 @@ DEDUPE_IOU = 0.6
 
 NODE_LABELS = {
     "describe": "Reading the diagram",
+    "legend": "Reading the legend",
     "detect_equipment": "Detecting equipment",
     "connect": "Tracing connections",
     "verify": "Verifying (Set-of-Mark)",
@@ -40,6 +44,29 @@ NODE_LABELS = {
     "place": "Placing on canvas",
     "summarize": "Finishing up",
 }
+
+
+def _clamp01(v: float) -> float:
+    return min(1.0, max(0.0, v))
+
+
+def _opts(state: ExtractorState) -> ExtractOptions:
+    return state.get("opts") or ExtractOptions()
+
+
+def _prior(state: ExtractorState) -> str:
+    """The shared context block (notes + legend + user hint) fed to detect/connect."""
+    parts: list[str] = []
+    desc = state.get("description", "")
+    if desc:
+        parts.append(f"Diagram notes:\n{desc}")
+    legend = state.get("legend", "")
+    if legend and legend.strip().upper() != "NONE":
+        parts.append(f"Symbol legend (this drawing's conventions):\n{legend}")
+    hint = _opts(state).hint.strip()
+    if hint:
+        parts.append(f"User guidance: {hint}")
+    return "\n\n".join(parts)
 
 
 def _iou(a: DetectedEquipment, b: DetectedEquipment) -> float:
@@ -119,8 +146,6 @@ def _boxes(equipment: list[DetectedEquipment]) -> list[tuple[str, float, float, 
 
 
 def build_extractor_graph(model: ModelClient) -> Any:
-    settings = get_settings()
-
     def describe(state: ExtractorState) -> ExtractorState:
         text = model.generate_text(
             role="vision",
@@ -131,17 +156,85 @@ def build_extractor_graph(model: ModelClient) -> Any:
         )
         return {"description": text}
 
-    def detect_equipment(state: ExtractorState) -> ExtractorState:
-        prompt = f"Diagram notes:\n{state.get('description', '')}\n\n{prompts.EQUIPMENT_USER}"
+    def legend(state: ExtractorState) -> ExtractorState:
+        if not _opts(state).use_legend:
+            return {}
+        try:
+            text = model.generate_text(
+                role="vision",
+                prompt=prompts.LEGEND_USER,
+                system=prompts.LEGEND_SYSTEM,
+                image=(state["image"], state["mime_type"]),
+                temperature=0.1,
+            )
+        except Exception:
+            return {}
+        return {"legend": text}
+
+    def _detect_whole(state: ExtractorState, prior: str, temp: float) -> list[DetectedEquipment]:
+        prompt = f"{prior}\n\n{prompts.EQUIPMENT_USER}" if prior else prompts.EQUIPMENT_USER
         result = model.generate_structured(
             role="vision",
             prompt=prompt,
             schema=EquipmentList,
             system=prompts.EQUIPMENT_SYSTEM,
             image=(state["image"], state["mime_type"]),
-            temperature=0.1,
+            temperature=temp,
         )
-        return {"equipment": result.equipment}
+        return result.equipment
+
+    def _detect_tiled(
+        state: ExtractorState, prior: str, opts: ExtractOptions, temp: float
+    ) -> list[DetectedEquipment]:
+        """Detect per overlapping tile at full resolution, then remap each
+        tile-local box into global 0..1 coordinates. Boundary duplicates are
+        removed later by NMS in `detect_equipment`."""
+        tiles = tiling.make_tiles(state["image"], opts.tile_cols, opts.tile_rows)
+        out: list[DetectedEquipment] = []
+        base = (f"{prior}\n\n" if prior else "") + (
+            "This is ONE TILE (a crop) of a larger P&ID. Detect equipment visible in "
+            "THIS crop only, with boxes normalized 0..1 relative to THIS crop.\n\n"
+            f"{prompts.EQUIPMENT_USER}"
+        )
+        for ti, tile in enumerate(tiles):
+            try:
+                result = model.generate_structured(
+                    role="vision",
+                    prompt=base,
+                    schema=EquipmentList,
+                    system=prompts.EQUIPMENT_SYSTEM,
+                    image=(tile.image, "image/png"),
+                    temperature=temp,
+                )
+            except Exception:
+                continue
+            for e in result.equipment:
+                gbox = Box(
+                    x0=_clamp01(tile.x + e.box.x0 * tile.w),
+                    y0=_clamp01(tile.y + e.box.y0 * tile.h),
+                    x1=_clamp01(tile.x + e.box.x1 * tile.w),
+                    y1=_clamp01(tile.y + e.box.y1 * tile.h),
+                )
+                out.append(e.model_copy(update={"ref": f"t{ti}_{e.ref}", "box": gbox}))
+        return out
+
+    def detect_equipment(state: ExtractorState) -> ExtractorState:
+        opts = _opts(state)
+        prior = _prior(state)
+        rounds = max(1, opts.effort)
+        # A touch of temperature across rounds so self-consistency pooling
+        # surfaces symbols a single deterministic pass would miss.
+        temp = 0.1 if rounds == 1 else 0.35
+        pool: list[DetectedEquipment] = []
+        for _ in range(rounds):
+            if opts.use_tiling:
+                pool.extend(_detect_tiled(state, prior, opts, temp))
+            else:
+                pool.extend(_detect_whole(state, prior, temp))
+        merged = _dedupe_equipment(pool)
+        # Renumber to clean, unique refs so connect/verify reference them consistently.
+        renumbered = [e.model_copy(update={"ref": f"E{i}"}) for i, e in enumerate(merged, start=1)]
+        return {"equipment": renumbered}
 
     def connect(state: ExtractorState) -> ExtractorState:
         equipment = state.get("equipment", [])
@@ -153,9 +246,10 @@ def build_extractor_graph(model: ModelClient) -> Any:
             + f" at ({e.box.cx:.2f}, {e.box.cy:.2f})"
             for e in equipment
         )
+        prior = _prior(state)
         prompt = (
-            f"Diagram notes:\n{state.get('description', '')}\n\n"
-            f"Detected equipment (use ONLY these refs):\n{listing}\n\n"
+            (f"{prior}\n\n" if prior else "")
+            + f"Detected equipment (use ONLY these refs):\n{listing}\n\n"
             "Trace every pipe and signal line and list the connections."
         )
         result = model.generate_structured(
@@ -170,7 +264,7 @@ def build_extractor_graph(model: ModelClient) -> Any:
 
     def verify(state: ExtractorState) -> ExtractorState:
         equipment = state.get("equipment", [])
-        if not settings.extractor_verify or not equipment:
+        if not _opts(state).use_verify or not equipment:
             return {}
         connections = state.get("connections", [])
         try:
@@ -202,7 +296,7 @@ def build_extractor_graph(model: ModelClient) -> Any:
 
     def line_augment(state: ExtractorState) -> ExtractorState:
         equipment = state.get("equipment", [])
-        if not settings.extractor_line_hybrid or len(equipment) < 2:
+        if not _opts(state).use_line_hybrid or len(equipment) < 2:
             return {}
         try:
             proposed = lines.propose_connections(state["image"], _boxes(equipment))
@@ -253,6 +347,7 @@ def build_extractor_graph(model: ModelClient) -> Any:
     return (
         StateGraph(ExtractorState)
         .add_node("describe", describe)
+        .add_node("legend", legend)
         .add_node("detect_equipment", detect_equipment)
         .add_node("connect", connect)
         .add_node("verify", verify)
@@ -261,7 +356,8 @@ def build_extractor_graph(model: ModelClient) -> Any:
         .add_node("place", place)
         .add_node("summarize", summarize)
         .add_edge(START, "describe")
-        .add_edge("describe", "detect_equipment")
+        .add_edge("describe", "legend")
+        .add_edge("legend", "detect_equipment")
         .add_edge("detect_equipment", "connect")
         .add_edge("connect", "verify")
         .add_edge("verify", "line_augment")
@@ -278,7 +374,15 @@ def run_extractor(
     image: bytes,
     mime_type: str,
     canvas: CanvasState,
+    opts: ExtractOptions | None = None,
 ) -> tuple[list[CanvasCommand], str]:
     graph = build_extractor_graph(model)
-    result = graph.invoke({"image": image, "mime_type": mime_type, "canvas": canvas})
+    result = graph.invoke(
+        {
+            "image": image,
+            "mime_type": mime_type,
+            "canvas": canvas,
+            "opts": opts or ExtractOptions(),
+        }
+    )
     return result.get("commands", []), result.get("summary", "")
