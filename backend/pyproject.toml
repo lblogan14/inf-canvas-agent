@@ -14,6 +14,8 @@ dependencies = [
     "langgraph>=0.2.50",
     "langchain-core>=0.3",
     "pillow>=11.0",
+    "opencv-python-headless>=4.10",
+    "numpy>=2.1",
 ]
 
 [dependency-groups]
@@ -49,7 +51,7 @@ files = ["src"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["google.*", "langgraph.*", "langchain_core.*"]
+module = ["google.*", "langgraph.*", "langchain_core.*", "cv2.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

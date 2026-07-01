@@ -22,10 +22,14 @@ class Settings(BaseSettings):
     gemini_model_pro: str = "gemini-2.5-pro"
     gemini_model_flash: str = "gemini-2.5-flash"
     # Vision/extraction benefits most from the newest spatial-grounding model.
-    gemini_model_vision: str = "gemini-3-pro"
+    gemini_model_vision: str = "gemini-3.1-pro-preview"
 
     storage_dir: str = "storage"
     frontend_origin: str = "http://localhost:5173"
+
+    # P&ID extractor accuracy passes (extra latency/cost; disable for speed).
+    extractor_verify: bool = True  # Set-of-Mark verifier pass
+    extractor_line_hybrid: bool = True  # OpenCV line-connection proposals
 
     @property
     def storage_path(self) -> Path:

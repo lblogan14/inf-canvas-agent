@@ -46,3 +46,28 @@ class DetectedConnection(BaseModel):
 
 class ConnectionList(BaseModel):
     connections: list[DetectedConnection]
+
+
+class TypeFix(BaseModel):
+    ref: str
+    type: EquipmentType
+
+
+class VerificationResult(BaseModel):
+    """Corrections from the Set-of-Mark verifier pass."""
+
+    missing_equipment: list[DetectedEquipment] = Field(
+        default_factory=list, description="Equipment visible in the image but not yet detected."
+    )
+    remove_equipment_refs: list[str] = Field(
+        default_factory=list, description="Refs of detected boxes that are wrong / not equipment."
+    )
+    retype: list[TypeFix] = Field(
+        default_factory=list, description="Refs whose equipment type should be corrected."
+    )
+    missing_connections: list[DetectedConnection] = Field(
+        default_factory=list, description="Connections visible in the image but not yet captured."
+    )
+    remove_connections: list[DetectedConnection] = Field(
+        default_factory=list, description="Captured connections that are not actually drawn."
+    )

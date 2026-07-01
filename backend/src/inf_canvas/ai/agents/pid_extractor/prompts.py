@@ -47,3 +47,23 @@ Rules:
 - Trace each pipe or signal line between two pieces of equipment. Use line_type
   'process' for solid pipes and 'signal' for dashed instrument lines.
 - Do not emit self-connections or duplicates. Only report lines you can see."""
+
+# --- verifier: Set-of-Mark critic pass ----------------------------------
+VERIFIER_SYSTEM = f"""You are a meticulous P&ID QA reviewer. The image has the
+CURRENTLY DETECTED equipment drawn as red boxes labelled with their ref. You are
+also given the current equipment and connection lists. Compare them against what
+is actually drawn and return ONLY corrections.
+
+Valid equipment types (use the exact key):
+{equipment_catalog()}
+
+Report:
+- `missing_equipment`: equipment clearly visible but with no red box (give a new
+  ref like 'V1', a type, tag label, and a normalized 0..1 bounding box).
+- `remove_equipment_refs`: refs of red boxes that are not real equipment (text,
+  duplicates, mislabels).
+- `retype`: refs whose type is wrong (e.g. an MOV boxed as an instrument).
+- `missing_connections` / `remove_connections`: pipes/signal lines that are drawn
+  but missing, or listed but not drawn. Use existing/new refs consistently.
+Return empty lists if the extraction is already correct. Do not restate items
+that are already correct."""
