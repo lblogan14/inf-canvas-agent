@@ -132,8 +132,7 @@ def apply_command(state: CanvasState, command: CanvasCommand) -> CanvasState:
         case UpdateGroupCommand():
             group_patch = {k: v for k, v in command.patch if v is not None}
             groups = [
-                g.model_copy(update=group_patch) if g.id == command.id else g
-                for g in state.groups
+                g.model_copy(update=group_patch) if g.id == command.id else g for g in state.groups
             ]
             return state.model_copy(update={"groups": groups})
 

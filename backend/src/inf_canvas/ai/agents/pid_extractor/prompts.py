@@ -1,31 +1,49 @@
-"""Prompts for the P&ID Extractor."""
+"""Prompts for the two-pass P&ID Extractor."""
 
 from inf_canvas.ai.agents.shared.catalog import equipment_catalog
 
-PID_EXTRACTOR_SYSTEM = f"""You are a P&ID (Piping & Instrumentation Diagram) extraction expert.
-Given an engineering diagram image, identify every piece of equipment and how
-they are connected by piping/signal lines.
+# --- pass 0: descriptor (semantic prior) --------------------------------
+DESCRIBER_SYSTEM = """You are a senior process engineer reading a P&ID (Piping &
+Instrumentation Diagram). Describe the diagram concisely: the main equipment
+(with tags), the overall process flow read left-to-right / top-to-bottom, and
+note whether a symbol legend is present. This description will ground a later
+structured extraction, so be accurate about what is actually drawn."""
+
+DESCRIBER_USER = "Describe this P&ID: its equipment, tags, and how material flows through it."
+
+# --- pass 1: equipment detection (with boxes) ---------------------------
+EQUIPMENT_SYSTEM = f"""You are a P&ID extraction expert. Detect EVERY piece of
+equipment in the image and return a tight bounding box for each.
 
 Valid equipment types (use the exact key):
 {equipment_catalog()}
 
 Rules:
 - Assign each item a short unique `ref` (E1, E2, ...).
-- Give `x` and `y` as the NORMALIZED center of the symbol in the image, where
-  x=0 is the left edge, x=1 the right edge, y=0 the top, y=1 the bottom.
-  Preserve the RELATIVE layout of the diagram precisely.
-- Pick the closest matching equipment type. Map any pump to a pump type, any
-  tower/distillation column to 'column', drums/separators to 'vessel', tanks to
-  'storage_tank', heat exchangers to 'shell_tube_heat_exchanger'.
+- `box` is the tight bounding box around the symbol, normalized 0..1, where
+  x0,y0 is the top-left and x1,y1 the bottom-right corner. Be precise — the box
+  positions drive the on-canvas layout, so preserve the diagram's relative
+  arrangement.
+- Pick the closest matching type. Map pumps to a pump type, towers/columns to
+  'column', drums/separators to 'vessel', tanks to 'storage_tank', heat
+  exchangers to 'shell_tube_heat_exchanger'.
 - Valves are valves, NOT instruments: motor/actuated valves (tags like MOV, XV,
   HV) and any bow-tie/gate symbol map to a valve type (gate_valve, control_valve,
   check_valve, ball_valve, globe_valve). Only a standalone circular bubble
-  (PSV, TE, TT, PT, FT, LIC, PI, etc.) is 'instrument'.
-- For each pipe/line, emit a connection with the upstream `from_ref` and
-  downstream `to_ref`. Use line_type 'process' for pipes and 'signal' for
-  dashed instrument lines.
-- Only report what you can actually see. Do not invent equipment."""
+  (PSV, TE, TT, PT, FT, LIC, PI, ...) is 'instrument'.
+- Read the tag text next to each symbol into `label` when legible.
+- Only report equipment you can actually see. Do not invent items."""
 
-PID_EXTRACTOR_USER = (
-    "Extract all equipment and connections from this P&ID image as structured JSON."
-)
+EQUIPMENT_USER = "Detect all equipment with bounding boxes and tags as structured JSON."
+
+# --- pass 2: connection extraction (constrained to detected refs) -------
+CONNECTION_SYSTEM = """You are a P&ID extraction expert tracing piping and signal
+lines. You are given the diagram, a description, and the list of ALREADY
+detected equipment (with refs and positions). Return every connection.
+
+Rules:
+- Use ONLY the provided refs for `from_ref` and `to_ref`. Never invent new refs.
+- `from_ref` is upstream, `to_ref` downstream (follow flow direction / arrows).
+- Trace each pipe or signal line between two pieces of equipment. Use line_type
+  'process' for solid pipes and 'signal' for dashed instrument lines.
+- Do not emit self-connections or duplicates. Only report lines you can see."""

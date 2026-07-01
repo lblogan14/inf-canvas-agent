@@ -5,7 +5,7 @@ from typing import TypedDict
 from inf_canvas.schema.canvas import CanvasState
 from inf_canvas.schema.commands import CanvasCommand
 
-from .schemas import PIDExtraction
+from .schemas import DetectedConnection, DetectedEquipment
 
 
 class ExtractorState(TypedDict, total=False):
@@ -13,7 +13,10 @@ class ExtractorState(TypedDict, total=False):
     image: bytes
     mime_type: str
     canvas: CanvasState
-    # working / outputs
-    extraction: PIDExtraction
+    # working
+    description: str
+    equipment: list[DetectedEquipment]
+    connections: list[DetectedConnection]
+    # outputs
     commands: list[CanvasCommand]
     summary: str

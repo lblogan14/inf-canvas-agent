@@ -1,4 +1,9 @@
-"""Structured-output schema for P&ID extraction (Gemini vision)."""
+"""Structured-output schemas for the two-pass P&ID extraction (Gemini vision).
+
+Pass 1 detects equipment with bounding boxes; pass 2 extracts connections
+restricted to the detected refs. Boxes are normalized 0..1 (x0,y0 top-left,
+x1,y1 bottom-right), which the newer Gemini models produce precisely.
+"""
 
 from pydantic import BaseModel, Field
 
@@ -6,12 +11,30 @@ from inf_canvas.schema.canvas import LineType
 from inf_canvas.schema.equipment import EquipmentType
 
 
+class Box(BaseModel):
+    x0: float = Field(description="Left edge, normalized 0..1.")
+    y0: float = Field(description="Top edge, normalized 0..1.")
+    x1: float = Field(description="Right edge, normalized 0..1.")
+    y1: float = Field(description="Bottom edge, normalized 0..1.")
+
+    @property
+    def cx(self) -> float:
+        return (self.x0 + self.x1) / 2
+
+    @property
+    def cy(self) -> float:
+        return (self.y0 + self.y1) / 2
+
+
 class DetectedEquipment(BaseModel):
     ref: str = Field(description="Short unique id for this item, e.g. 'E1'.")
     type: EquipmentType
     label: str | None = Field(default=None, description="Tag text if visible, e.g. 'P-101'.")
-    x: float = Field(description="Center X, normalized 0..1 (left to right).")
-    y: float = Field(description="Center Y, normalized 0..1 (top to bottom).")
+    box: Box = Field(description="Tight bounding box around the symbol, normalized 0..1.")
+
+
+class EquipmentList(BaseModel):
+    equipment: list[DetectedEquipment]
 
 
 class DetectedConnection(BaseModel):
@@ -21,6 +44,5 @@ class DetectedConnection(BaseModel):
     label: str | None = None
 
 
-class PIDExtraction(BaseModel):
-    equipment: list[DetectedEquipment]
+class ConnectionList(BaseModel):
     connections: list[DetectedConnection]

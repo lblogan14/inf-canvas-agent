@@ -21,7 +21,8 @@ class Settings(BaseSettings):
     # Gemini model ids per agent role.
     gemini_model_pro: str = "gemini-2.5-pro"
     gemini_model_flash: str = "gemini-2.5-flash"
-    gemini_model_vision: str = "gemini-2.5-pro"
+    # Vision/extraction benefits most from the newest spatial-grounding model.
+    gemini_model_vision: str = "gemini-3-pro"
 
     storage_dir: str = "storage"
     frontend_origin: str = "http://localhost:5173"
