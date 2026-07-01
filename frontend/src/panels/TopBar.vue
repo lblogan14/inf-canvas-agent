@@ -55,7 +55,7 @@ const linkStyles: LinkStyle[] = ['smoothstep', 'straight', 'step'];
 
 <template>
   <header class="topbar">
-    <div class="brand">⬡ P&amp;ID Agent</div>
+    <div class="brand"><img src="/favicon.svg" class="brand-icon" alt="" /> P&amp;ID Agent</div>
 
     <!-- Menus -->
     <nav class="menus">
@@ -195,10 +195,18 @@ const linkStyles: LinkStyle[] = ['smoothstep', 'straight', 'step'];
   z-index: 40;
 }
 .brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 700;
   font-size: 14px;
   color: var(--accent);
   margin-right: 6px;
+}
+.brand-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
 }
 .menus {
   display: flex;
