@@ -1,0 +1,12 @@
+{
+  "name": "P&ID Agent",
+  "short_name": "P&ID Agent",
+  "description": "Infinite canvas for P&IDs with Gemini-powered agents.",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "theme_color": "#0ea5e9",
+  "background_color": "#0f172a",
+  "display": "standalone"
+}

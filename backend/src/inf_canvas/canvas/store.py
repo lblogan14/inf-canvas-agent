@@ -11,6 +11,7 @@ from ..schema.canvas import CanvasMeta, CanvasState
 class CanvasRepository(Protocol):
     def load(self, canvas_id: str) -> CanvasState | None: ...
     def save(self, state: CanvasState) -> None: ...
+    def delete(self, canvas_id: str) -> bool: ...
     def list_projects(self) -> list[CanvasMeta]: ...
 
 
@@ -33,6 +34,13 @@ class JsonFileRepository:
     def save(self, state: CanvasState) -> None:
         path = self._path(state.meta.id)
         path.write_text(state.model_dump_json(indent=2), encoding="utf-8")
+
+    def delete(self, canvas_id: str) -> bool:
+        path = self._path(canvas_id)
+        if path.exists():
+            path.unlink()
+            return True
+        return False
 
     def list_projects(self) -> list[CanvasMeta]:
         metas: list[CanvasMeta] = []

@@ -3,8 +3,9 @@
 `apply_command` returns a new CanvasState and never mutates its input.
 """
 
-from ..schema.canvas import CanvasEdge, CanvasNode, CanvasState
+from ..schema.canvas import CanvasEdge, CanvasGroup, CanvasNode, CanvasState
 from ..schema.commands import (
+    AddGroupCommand,
     AddNodeCommand,
     BatchCommand,
     CanvasCommand,
@@ -12,9 +13,11 @@ from ..schema.commands import (
     ConnectCommand,
     DisconnectCommand,
     MoveNodeCommand,
+    RemoveGroupCommand,
     RemoveNodeCommand,
     SelectCommand,
     UpdateEdgeCommand,
+    UpdateGroupCommand,
     UpdateNodeCommand,
 )
 
@@ -71,6 +74,12 @@ def apply_command(state: CanvasState, command: CanvasCommand) -> CanvasState:
                     "edges": [
                         e for e in state.edges if e.source != command.id and e.target != command.id
                     ],
+                    "groups": [
+                        g.model_copy(
+                            update={"memberIds": [m for m in g.memberIds if m != command.id]}
+                        )
+                        for g in state.groups
+                    ],
                 }
             )
 
@@ -100,11 +109,37 @@ def apply_command(state: CanvasState, command: CanvasCommand) -> CanvasState:
             )
 
         case ClearCommand():
-            return state.model_copy(update={"nodes": [], "edges": []})
+            return state.model_copy(update={"nodes": [], "edges": [], "groups": []})
 
         case SelectCommand():
             # Selection is a client-side concern; no persisted change.
             return state
+
+        case AddGroupCommand():
+            if any(g.id == command.id for g in state.groups):
+                return state
+            group = CanvasGroup(
+                id=command.id,
+                label=command.label,
+                position=command.position,
+                width=command.width,
+                height=command.height,
+                memberIds=command.memberIds,
+                color=command.color,
+            )
+            return state.model_copy(update={"groups": [*state.groups, group]})
+
+        case UpdateGroupCommand():
+            group_patch = {k: v for k, v in command.patch if v is not None}
+            groups = [
+                g.model_copy(update=group_patch) if g.id == command.id else g for g in state.groups
+            ]
+            return state.model_copy(update={"groups": groups})
+
+        case RemoveGroupCommand():
+            return state.model_copy(
+                update={"groups": [g for g in state.groups if g.id != command.id]}
+            )
 
         case BatchCommand():
             new_state = state

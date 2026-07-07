@@ -16,7 +16,7 @@ edges. Powered by **Gemini** via **LangGraph** agents.
 | --- | --- |
 | Canvas / UI | Vue 3 + Vite + TypeScript, **Vue Flow**, Pinia, Tailwind v4 |
 | Backend | FastAPI + Uvicorn, Pydantic v2, WebSockets |
-| AI | `google-genai` (Gemini Pro/Flash) + **LangGraph** (all 3 agents) |
+| AI | **LangGraph** agents; **Gemini by default**, any provider via LangChain |
 | Persistence | JSON files (behind a repository interface) |
 | Tooling | `frontend/`: pnpm · `backend/`: uv + Ruff + mypy + pytest |
 
@@ -80,9 +80,30 @@ cd frontend && pnpm dev
 Open http://localhost:5173. Add equipment from the left palette, wire ports
 together, and use the **Optimus** panel (bottom) to chat or upload a P&ID image.
 
+## Model providers
+
+Gemini is the default, but the agents are provider-agnostic (they talk to a
+small `ModelClient` interface, not an SDK). Configure via `.env`:
+
+- **Gemini (default)** — `LLM_PROVIDER=gemini`, set `GOOGLE_API_KEY`. Uses the
+  `google-genai` SDK directly.
+- **Any other provider** (OpenAI, Anthropic, Groq, …) — install the extra and
+  switch the provider:
+  ```bash
+  cd backend && uv sync --extra providers
+  # .env:
+  LLM_PROVIDER=openai
+  MODEL_PRO=gpt-5        # or your provider's model ids
+  MODEL_FLASH=gpt-5-mini
+  MODEL_VISION=gpt-5
+  OPENAI_API_KEY=...
+  ```
+  Non-Gemini providers route through LangChain's `init_chat_model`, so anything
+  it supports works. Model ids are per role (`MODEL_PRO` / `MODEL_FLASH` /
+  `MODEL_VISION`; the legacy `GEMINI_MODEL_*` names still work).
+
 ## Notes
 
-- Without `GOOGLE_API_KEY`, the canvas and persistence work fully; the AI
+- Without a valid provider key, the canvas and persistence work fully; the AI
   endpoints return HTTP 503 with a clear message.
-- Gemini model ids are configurable per role in `.env`
-  (`GEMINI_MODEL_PRO`, `GEMINI_MODEL_FLASH`, `GEMINI_MODEL_VISION`).
+- Agent runs **stream progress** (each step) to the Optimus panel via SSE.

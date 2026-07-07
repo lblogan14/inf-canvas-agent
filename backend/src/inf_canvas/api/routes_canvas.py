@@ -29,3 +29,9 @@ async def save_project(
     if state.meta.id != canvas_id:
         raise HTTPException(status_code=400, detail="canvas id mismatch")
     return await bus.set_state(state)
+
+
+@router.delete("/projects/{canvas_id}")
+async def delete_project(canvas_id: str, bus: CommandBus = Depends(get_bus)) -> dict[str, bool]:
+    deleted = await bus.delete(canvas_id)
+    return {"deleted": deleted}

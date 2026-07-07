@@ -36,9 +36,14 @@ backend/storage/uploads/*
 .DS_Store
 Thumbs.db
 
+# --- Data / local test assets ---
+data/
+/PID-*.png
+
 
 # --- Agents ---
 .playwright/
+.playwright-mcp/
 CLAUDE.md
 AGENTS.md
 .claude/

@@ -38,6 +38,12 @@ class CommandBus:
                 self._repo.save(state)
         return state
 
+    async def delete(self, canvas_id: str) -> bool:
+        """Forget a canvas from memory and delete its persisted file."""
+        async with self._lock:
+            self._states.pop(canvas_id, None)
+            return self._repo.delete(canvas_id)
+
     async def apply(
         self,
         canvas_id: str,
@@ -74,6 +80,21 @@ class CommandBus:
 
         batch = BatchCommand(op="batch", commands=commands)
         await self.apply(canvas_id, batch, source)
+        return len(commands)
+
+    async def apply_sequence(
+        self,
+        canvas_id: str,
+        commands: list[CanvasCommand],
+        source: CommandSource,
+        delay: float = 0.07,
+    ) -> int:
+        """Apply commands one at a time (each broadcast) so the canvas builds
+        up step-by-step in the UI instead of appearing all at once."""
+        for command in commands:
+            await self.apply(canvas_id, command, source)
+            if delay:
+                await asyncio.sleep(delay)
         return len(commands)
 
     # --- connection management ---------------------------------------------

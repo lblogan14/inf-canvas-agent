@@ -6,6 +6,7 @@ of truth). Field names use the same camelCase as the JSON wire format.
 
 from .canvas import (
     CanvasEdge,
+    CanvasGroup,
     CanvasMeta,
     CanvasNode,
     CanvasState,
@@ -15,6 +16,7 @@ from .canvas import (
     empty_canvas,
 )
 from .commands import (
+    AddGroupCommand,
     AddNodeCommand,
     BatchCommand,
     CanvasCommand,
@@ -24,11 +26,13 @@ from .commands import (
     ConnectCommand,
     DisconnectCommand,
     MoveNodeCommand,
+    RemoveGroupCommand,
     RemoveNodeCommand,
     SelectCommand,
     ServerMessage,
     SnapshotMessage,
     UpdateEdgeCommand,
+    UpdateGroupCommand,
     UpdateNodeCommand,
     command_adapter,
 )
@@ -43,10 +47,12 @@ from .equipment import (
 __all__ = [
     "EQUIPMENT_METADATA",
     "EQUIPMENT_TYPES",
+    "AddGroupCommand",
     "AddNodeCommand",
     "BatchCommand",
     "CanvasCommand",
     "CanvasEdge",
+    "CanvasGroup",
     "CanvasMeta",
     "CanvasNode",
     "CanvasState",
@@ -62,11 +68,13 @@ __all__ = [
     "PipeData",
     "PortDef",
     "Position",
+    "RemoveGroupCommand",
     "RemoveNodeCommand",
     "SelectCommand",
     "ServerMessage",
     "SnapshotMessage",
     "UpdateEdgeCommand",
+    "UpdateGroupCommand",
     "UpdateNodeCommand",
     "command_adapter",
     "empty_canvas",

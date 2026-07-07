@@ -7,7 +7,7 @@ import type { EquipmentNodeData } from '@/stores/canvasStore';
 
 const props = defineProps<NodeProps<EquipmentNodeData>>();
 
-const SymbolComponent = computed(() => symbolRegistry[props.data.meta.symbol]);
+const symbolSvg = computed(() => symbolRegistry[props.data.meta.symbol]);
 
 const sideToPosition: Record<PortSide, FlowPosition> = {
   top: FlowPosition.Top,
@@ -24,22 +24,22 @@ function handleStyle(port: PortDef): Record<string, string> {
   return port.side === 'top' || port.side === 'bottom' ? { left: `${pct}%` } : { top: `${pct}%` };
 }
 
-const sizeStyle = computed(() => ({
+// The node box equals the SYMBOL box so Vue Flow anchors handles (and thus edge
+// endpoints) on the symbol perimeter. The label is floated below and excluded
+// from the box.
+const rootStyle = computed(() => ({
   width: `${props.data.meta.size.width}px`,
   height: `${props.data.meta.size.height}px`,
+}));
+const symbolStyle = computed(() => ({
   transform: props.data.rotation ? `rotate(${props.data.rotation}deg)` : undefined,
 }));
 </script>
 
 <template>
-  <div class="equipment-node" :class="{ selected: props.selected }">
-    <div class="symbol-wrap" :style="sizeStyle" :title="data.meta.label">
-      <component
-        :is="SymbolComponent"
-        :width="data.meta.size.width"
-        :height="data.meta.size.height"
-      />
-    </div>
+  <div class="equipment-node" :class="{ selected: props.selected }" :style="rootStyle">
+    <!-- eslint-disable-next-line vue/no-v-html -- trusted first-party SVG assets -->
+    <div class="symbol-wrap" :style="symbolStyle" :title="data.meta.label" v-html="symbolSvg" />
 
     <div v-if="data.label" class="node-label">{{ data.label }}</div>
 
@@ -65,37 +65,47 @@ const sizeStyle = computed(() => ({
 
 <style scoped>
 .equipment-node {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: #e5e7eb;
+  position: relative;
+  color: var(--text);
 }
 .symbol-wrap {
+  width: 100%;
+  height: 100%;
   display: grid;
   place-items: center;
-  color: #cbd5e1;
+  color: var(--node-stroke);
   transition: color 0.12s ease;
 }
+.symbol-wrap :deep(svg) {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
 .equipment-node.selected .symbol-wrap {
-  color: #38bdf8;
+  color: var(--accent);
 }
 .node-label {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
   margin-top: 4px;
   font-size: 11px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--node-label);
   white-space: nowrap;
+  pointer-events: none;
 }
 .equipment-node.selected .node-label {
-  color: #38bdf8;
+  color: var(--accent);
 }
 :deep(.vue-flow__handle) {
   width: 8px;
   height: 8px;
-  background: #475569;
-  border: 1px solid #94a3b8;
+  background: var(--handle);
+  border: 1px solid var(--handle-border);
 }
 :deep(.vue-flow__handle:hover) {
-  background: #38bdf8;
+  background: var(--accent);
 }
 </style>

@@ -26,6 +26,8 @@ export interface PipeData {
   /** Line number / pipe spec, e.g. '6"-P-1001-CS'. */
   label?: string;
   animated?: boolean;
+  /** Manual routing points the pipe passes through (reroute). */
+  waypoints?: Position[];
 }
 
 export interface CanvasEdge {
@@ -35,6 +37,18 @@ export interface CanvasEdge {
   target: string;
   targetPort: string;
   data?: PipeData;
+}
+
+/** A titled background region grouping equipment (e.g. by unit/system). */
+export interface CanvasGroup {
+  id: string;
+  label: string;
+  position: Position;
+  width: number;
+  height: number;
+  color?: string;
+  /** Node ids that move with the group. */
+  memberIds: string[];
 }
 
 export interface CanvasMeta {
@@ -49,6 +63,7 @@ export interface CanvasState {
   meta: CanvasMeta;
   nodes: CanvasNode[];
   edges: CanvasEdge[];
+  groups: CanvasGroup[];
 }
 
 export function emptyCanvas(id: string, name: string): CanvasState {
@@ -56,5 +71,6 @@ export function emptyCanvas(id: string, name: string): CanvasState {
     meta: { id, name },
     nodes: [],
     edges: [],
+    groups: [],
   };
 }

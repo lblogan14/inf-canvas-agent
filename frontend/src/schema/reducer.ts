@@ -6,7 +6,7 @@
  * logic in Python; keep the two in sync.
  */
 
-import type { CanvasEdge, CanvasNode, CanvasState } from './canvas';
+import type { CanvasEdge, CanvasGroup, CanvasNode, CanvasState } from './canvas';
 import type { CanvasCommand } from './commands';
 
 function replaceNode(
@@ -58,6 +58,10 @@ export function applyCommand(state: CanvasState, command: CanvasCommand): Canvas
         ...state,
         nodes: state.nodes.filter((n) => n.id !== command.id),
         edges: state.edges.filter((e) => e.source !== command.id && e.target !== command.id),
+        groups: state.groups.map((g) => ({
+          ...g,
+          memberIds: g.memberIds.filter((mid) => mid !== command.id),
+        })),
       };
     }
 
@@ -93,9 +97,34 @@ export function applyCommand(state: CanvasState, command: CanvasCommand): Canvas
       // handled where a fresh canvas is needed. Neither mutates persisted graph
       // data here.
       if (command.op === 'clear') {
-        return { ...state, nodes: [], edges: [] };
+        return { ...state, nodes: [], edges: [], groups: [] };
       }
       return state;
+    }
+
+    case 'add_group': {
+      if (state.groups.some((g) => g.id === command.id)) return state;
+      const group: CanvasGroup = {
+        id: command.id,
+        label: command.label,
+        position: command.position,
+        width: command.width,
+        height: command.height,
+        memberIds: command.memberIds,
+        ...(command.color !== undefined ? { color: command.color } : {}),
+      };
+      return { ...state, groups: [...state.groups, group] };
+    }
+
+    case 'update_group': {
+      return {
+        ...state,
+        groups: state.groups.map((g) => (g.id === command.id ? { ...g, ...command.patch } : g)),
+      };
+    }
+
+    case 'remove_group': {
+      return { ...state, groups: state.groups.filter((g) => g.id !== command.id) };
     }
 
     case 'batch': {

@@ -6,6 +6,10 @@ import tailwindcss from '@tailwindcss/vite';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
+  build: {
+    // elkjs is a deliberately large, lazy-loaded vendor chunk (auto-layout only).
+    chunkSizeWarningLimit: 1600,
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -14,8 +18,10 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': { target: 'http://localhost:8000', changeOrigin: true },
-      '/ws': { target: 'ws://localhost:8000', ws: true },
+      // Use 127.0.0.1 (not localhost): on Windows localhost may resolve to IPv6
+      // ::1 while uvicorn binds IPv4 127.0.0.1, which breaks the proxy.
+      '/api': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+      '/ws': { target: 'ws://127.0.0.1:8000', ws: true },
     },
   },
   test: {

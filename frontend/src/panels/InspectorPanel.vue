@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { getEquipmentMeta } from '@/schema';
+import { getEquipmentMeta, type LineType } from '@/schema';
 import { useCanvasStore } from '@/stores/canvasStore';
+import { useUiStore } from '@/stores/uiStore';
+import { LINE_STYLES } from '@/canvas/edges/lineStyles';
 
 const store = useCanvasStore();
+const ui = useUiStore();
 const node = computed(() => store.selectedNode);
 const meta = computed(() => (node.value ? getEquipmentMeta(node.value.type) : null));
+
+const edge = computed(() => store.selectedEdge);
+const lineTypes = Object.entries(LINE_STYLES).map(([key, s]) => ({
+  key: key as LineType,
+  label: s.label,
+}));
 
 function rotate(): void {
   if (!node.value) return;
@@ -15,7 +24,10 @@ function rotate(): void {
 
 <template>
   <aside class="inspector">
-    <div class="section-title">Inspector</div>
+    <div class="section-head">
+      <span class="section-title">Inspector</span>
+      <button class="collapse" title="Hide inspector" @click="ui.rightOpen = false">›</button>
+    </div>
     <template v-if="node && meta">
       <div class="field">
         <label>Type</label>
@@ -42,7 +54,41 @@ function rotate(): void {
       </div>
       <button class="action" @click="rotate">Rotate 90°</button>
     </template>
-    <div v-else class="empty">Select a node to edit its properties.</div>
+
+    <template v-else-if="edge">
+      <div class="field">
+        <label>Connection</label>
+        <div class="value">Pipe / signal line</div>
+      </div>
+      <div class="field">
+        <label>Line type</label>
+        <select
+          class="input"
+          :value="edge.data?.lineType ?? 'process'"
+          @change="
+            store.updateEdgeData(edge.id, {
+              lineType: ($event.target as HTMLSelectElement).value as LineType,
+            })
+          "
+        >
+          <option v-for="lt in lineTypes" :key="lt.key" :value="lt.key">{{ lt.label }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Line number / label</label>
+        <input
+          class="input"
+          :value="edge.data?.label ?? ''"
+          placeholder='e.g. 6"-P-1001-CS'
+          @change="
+            store.updateEdgeData(edge.id, { label: ($event.target as HTMLInputElement).value })
+          "
+        />
+      </div>
+      <p class="hint">Drag the handles on the selected pipe to reroute it.</p>
+    </template>
+
+    <div v-else class="empty">Select a node or connection to edit its properties.</div>
   </aside>
 </template>
 
@@ -50,17 +96,34 @@ function rotate(): void {
 .inspector {
   width: 240px;
   padding: 12px;
-  background: #111827;
-  border-left: 1px solid #1f2937;
-  color: #e5e7eb;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  color: var(--text);
   overflow-y: auto;
+}
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
 }
 .section-title {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #64748b;
-  margin-bottom: 10px;
+  color: var(--text-faint);
+}
+.collapse {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 2px 8px;
+}
+.collapse:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 .field {
   margin-bottom: 10px;
@@ -68,12 +131,12 @@ function rotate(): void {
 .field label {
   display: block;
   font-size: 10px;
-  color: #64748b;
+  color: var(--text-faint);
   margin-bottom: 3px;
 }
 .value {
   font-size: 13px;
-  color: #cbd5e1;
+  color: var(--text-muted);
 }
 .mono {
   font-family: ui-monospace, monospace;
@@ -84,25 +147,31 @@ function rotate(): void {
   font-size: 13px;
   padding: 5px 8px;
   border-radius: 6px;
-  border: 1px solid #1f2937;
-  background: #0b1220;
-  color: #cbd5e1;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
 }
 .action {
   width: 100%;
   font-size: 12px;
   padding: 6px;
   border-radius: 6px;
-  border: 1px solid #1f2937;
-  background: #1e293b;
-  color: #e5e7eb;
+  border: 1px solid var(--border);
+  background: var(--surface-3);
+  color: var(--text);
   cursor: pointer;
 }
 .action:hover {
-  border-color: #38bdf8;
+  border-color: var(--accent);
+}
+.hint {
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.4;
+  margin: 8px 0 0;
 }
 .empty {
   font-size: 12px;
-  color: #475569;
+  color: var(--text-faint);
 }
 </style>

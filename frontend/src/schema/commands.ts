@@ -7,7 +7,7 @@
  * humans share one authoritative state model.
  */
 
-import type { CanvasNode, CanvasState, PipeData, Position } from './canvas';
+import type { CanvasGroup, CanvasNode, CanvasState, PipeData, Position } from './canvas';
 import type { EquipmentType } from './equipment';
 
 export interface AddNodeCommand {
@@ -67,6 +67,30 @@ export interface ClearCommand {
   op: 'clear';
 }
 
+export interface AddGroupCommand {
+  op: 'add_group';
+  id: string;
+  label: string;
+  position: Position;
+  width: number;
+  height: number;
+  memberIds: string[];
+  color?: string;
+}
+
+export interface UpdateGroupCommand {
+  op: 'update_group';
+  id: string;
+  patch: Partial<
+    Pick<CanvasGroup, 'label' | 'color' | 'position' | 'width' | 'height' | 'memberIds'>
+  >;
+}
+
+export interface RemoveGroupCommand {
+  op: 'remove_group';
+  id: string;
+}
+
 /** Atomic group — applied all-or-nothing. Used by the P&ID Extractor. */
 export interface BatchCommand {
   op: 'batch';
@@ -83,6 +107,9 @@ export type CanvasCommand =
   | DisconnectCommand
   | SelectCommand
   | ClearCommand
+  | AddGroupCommand
+  | UpdateGroupCommand
+  | RemoveGroupCommand
   | BatchCommand;
 
 export type CommandOp = CanvasCommand['op'];

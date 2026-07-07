@@ -25,3 +25,11 @@ def test_list_projects(tmp_path: Path):
 def test_load_missing_returns_none(tmp_path: Path):
     repo = JsonFileRepository(tmp_path)
     assert repo.load("nope") is None
+
+
+def test_delete_removes_project(tmp_path: Path):
+    repo = JsonFileRepository(tmp_path)
+    repo.save(empty_canvas("a", "A"))
+    assert repo.delete("a") is True
+    assert repo.load("a") is None
+    assert repo.delete("a") is False  # already gone

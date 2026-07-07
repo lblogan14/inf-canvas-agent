@@ -1,4 +1,4 @@
-from inf_canvas.ai.agents import tools
+from inf_canvas.ai.agents.shared import tools
 from inf_canvas.schema.canvas import CanvasNode, Position, empty_canvas
 
 

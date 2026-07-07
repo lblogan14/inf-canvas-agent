@@ -77,6 +77,37 @@ class ClearCommand(BaseModel):
     op: Literal["clear"]
 
 
+class AddGroupCommand(BaseModel):
+    op: Literal["add_group"]
+    id: str
+    label: str
+    position: Position
+    width: float
+    height: float
+    memberIds: list[str]
+    color: str | None = None
+
+
+class GroupPatch(BaseModel):
+    label: str | None = None
+    color: str | None = None
+    position: Position | None = None
+    width: float | None = None
+    height: float | None = None
+    memberIds: list[str] | None = None
+
+
+class UpdateGroupCommand(BaseModel):
+    op: Literal["update_group"]
+    id: str
+    patch: GroupPatch
+
+
+class RemoveGroupCommand(BaseModel):
+    op: Literal["remove_group"]
+    id: str
+
+
 class BatchCommand(BaseModel):
     op: Literal["batch"]
     commands: list[CanvasCommand]
@@ -92,6 +123,9 @@ CanvasCommand = Annotated[
     | DisconnectCommand
     | SelectCommand
     | ClearCommand
+    | AddGroupCommand
+    | UpdateGroupCommand
+    | RemoveGroupCommand
     | BatchCommand,
     Field(discriminator="op"),
 ]

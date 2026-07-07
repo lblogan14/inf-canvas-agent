@@ -1,7 +1,8 @@
-"""Equipment taxonomy + port metadata (Python mirror of the TS equipment.ts).
+"""Equipment taxonomy + port metadata (Python mirror of equipment.ts).
 
 The agents rely on `EQUIPMENT_METADATA` to know valid equipment types, their
-canvas footprint, and which ports exist (used for connection routing).
+canvas footprint, and which ports exist (used for connection routing). Keep in
+lockstep with frontend/src/schema/equipment.ts.
 """
 
 from typing import Literal
@@ -11,32 +12,56 @@ from pydantic import BaseModel
 EquipmentType = Literal[
     "centrifugal_pump",
     "positive_displacement_pump",
+    "compressor",
+    "blower",
+    "fan",
+    "motor",
+    "turbine",
     "gate_valve",
     "globe_valve",
-    "control_valve",
-    "check_valve",
     "ball_valve",
+    "butterfly_valve",
+    "check_valve",
+    "control_valve",
+    "three_way_valve",
+    "relief_valve",
     "vessel",
     "column",
+    "reactor",
+    "mixer",
     "storage_tank",
     "shell_tube_heat_exchanger",
-    "compressor",
+    "air_cooler",
+    "cooling_tower",
+    "filter",
     "instrument",
 ]
 
 EQUIPMENT_TYPES: tuple[EquipmentType, ...] = (
     "centrifugal_pump",
     "positive_displacement_pump",
+    "compressor",
+    "blower",
+    "fan",
+    "motor",
+    "turbine",
     "gate_valve",
     "globe_valve",
-    "control_valve",
-    "check_valve",
     "ball_valve",
+    "butterfly_valve",
+    "check_valve",
+    "control_valve",
+    "three_way_valve",
+    "relief_valve",
     "vessel",
     "column",
+    "reactor",
+    "mixer",
     "storage_tank",
     "shell_tube_heat_exchanger",
-    "compressor",
+    "air_cooler",
+    "cooling_tower",
+    "filter",
     "instrument",
 )
 
@@ -90,7 +115,7 @@ EQUIPMENT_METADATA: dict[EquipmentType, EquipmentMeta] = {
     "centrifugal_pump": _meta(
         "centrifugal_pump",
         "Centrifugal Pump",
-        "pump",
+        "pump_centrifugal",
         80,
         80,
         [("suction", "inlet", "left"), ("discharge", "outlet", "top")],
@@ -98,16 +123,47 @@ EQUIPMENT_METADATA: dict[EquipmentType, EquipmentMeta] = {
     "positive_displacement_pump": _meta(
         "positive_displacement_pump",
         "Positive Displacement Pump",
-        "pump",
+        "pump_pd",
         80,
         80,
         [("suction", "inlet", "left"), ("discharge", "outlet", "right")],
     ),
-    "gate_valve": _meta("gate_valve", "Gate Valve", "valve", 60, 40, _IN_OUT),
-    "globe_valve": _meta("globe_valve", "Globe Valve", "valve", 60, 40, _IN_OUT),
-    "control_valve": _meta("control_valve", "Control Valve", "valve", 60, 56, _IN_OUT),
-    "check_valve": _meta("check_valve", "Check Valve", "valve", 60, 40, _IN_OUT),
-    "ball_valve": _meta("ball_valve", "Ball Valve", "valve", 60, 40, _IN_OUT),
+    "compressor": _meta(
+        "compressor",
+        "Compressor",
+        "compressor",
+        92,
+        80,
+        [("suction", "inlet", "left"), ("discharge", "outlet", "right")],
+    ),
+    "blower": _meta("blower", "Blower", "blower", 82, 80, _IN_OUT),
+    "fan": _meta("fan", "Fan", "blower", 80, 80, _IN_OUT),
+    "motor": _meta("motor", "Motor", "motor", 70, 70, [("shaft", "inout", "right")]),
+    "turbine": _meta("turbine", "Turbine / Expander", "turbine", 92, 72, _IN_OUT),
+    "gate_valve": _meta("gate_valve", "Gate Valve", "valve_gate", 64, 40, _IN_OUT),
+    "globe_valve": _meta("globe_valve", "Globe Valve", "valve_globe", 64, 40, _IN_OUT),
+    "ball_valve": _meta("ball_valve", "Ball Valve", "valve_ball", 64, 40, _IN_OUT),
+    "butterfly_valve": _meta(
+        "butterfly_valve", "Butterfly Valve", "valve_butterfly", 64, 40, _IN_OUT
+    ),
+    "check_valve": _meta("check_valve", "Check Valve", "valve_check", 64, 40, _IN_OUT),
+    "control_valve": _meta("control_valve", "Control Valve", "valve_control", 64, 58, _IN_OUT),
+    "three_way_valve": _meta(
+        "three_way_valve",
+        "Three-Way Valve",
+        "valve_threeway",
+        56,
+        56,
+        [("in", "inlet", "left"), ("out", "outlet", "right"), ("branch", "outlet", "bottom")],
+    ),
+    "relief_valve": _meta(
+        "relief_valve",
+        "Relief Valve",
+        "valve_relief",
+        54,
+        66,
+        [("in", "inlet", "bottom"), ("out", "outlet", "left")],
+    ),
     "vessel": _meta(
         "vessel",
         "Vessel / Drum",
@@ -124,8 +180,8 @@ EQUIPMENT_METADATA: dict[EquipmentType, EquipmentMeta] = {
     "column": _meta(
         "column",
         "Column / Tower",
-        "vessel",
-        90,
+        "column",
+        92,
         200,
         [
             ("overhead", "outlet", "top"),
@@ -133,12 +189,33 @@ EQUIPMENT_METADATA: dict[EquipmentType, EquipmentMeta] = {
             ("feed", "inlet", "left"),
         ],
     ),
+    "reactor": _meta(
+        "reactor",
+        "Reactor",
+        "reactor",
+        110,
+        150,
+        [
+            ("feed", "inlet", "top"),
+            ("product", "outlet", "bottom"),
+            ("jacket_in", "inlet", "left"),
+            ("jacket_out", "outlet", "right"),
+        ],
+    ),
+    "mixer": _meta(
+        "mixer",
+        "Mixer / Agitated Tank",
+        "mixer",
+        112,
+        120,
+        [("in", "inlet", "left"), ("out", "outlet", "bottom")],
+    ),
     "storage_tank": _meta(
         "storage_tank",
         "Storage Tank",
         "tank",
         140,
-        120,
+        116,
         [("fill", "inlet", "top"), ("draw", "outlet", "bottom")],
     ),
     "shell_tube_heat_exchanger": _meta(
@@ -154,20 +231,24 @@ EQUIPMENT_METADATA: dict[EquipmentType, EquipmentMeta] = {
             ("tube_out", "outlet", "bottom"),
         ],
     ),
-    "compressor": _meta(
-        "compressor",
-        "Compressor",
-        "compressor",
-        90,
-        80,
-        [("suction", "inlet", "left"), ("discharge", "outlet", "right")],
+    "air_cooler": _meta("air_cooler", "Air Cooler", "air_cooler", 120, 84, _IN_OUT),
+    "cooling_tower": _meta(
+        "cooling_tower",
+        "Cooling Tower",
+        "cooling_tower",
+        120,
+        110,
+        [("in", "inlet", "top"), ("out", "outlet", "bottom")],
+    ),
+    "filter": _meta(
+        "filter",
+        "Filter",
+        "filter",
+        72,
+        96,
+        [("in", "inlet", "top"), ("out", "outlet", "bottom")],
     ),
     "instrument": _meta(
-        "instrument",
-        "Instrument",
-        "instrument",
-        56,
-        56,
-        [("signal", "inout", "bottom")],
+        "instrument", "Instrument", "instrument", 56, 56, [("signal", "inout", "bottom")]
     ),
 }
